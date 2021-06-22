@@ -1,4 +1,8 @@
 <?php
+
+/**
+ * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
+ */
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
 define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');
@@ -108,8 +112,8 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         self::includeClassFile('shopFunctionsF', [JPATH_VM_SITE, 'helpers', 'shopfunctionsf.php']);
         self::includeClassFile('shopFunctionsF', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
 
-        $virtuemart_paymentmethod_id = JRequest::getInt('pm', 0);
-        $order_number                = JRequest::getString('on', 0);
+        $virtuemart_paymentmethod_id = JFactory::getApplication()->input->get->get('pm', 0);
+        $order_number                = JFactory::getApplication()->input->get->get('on', 0);
         $vendorId                    = 0;
 
         if (!($method = $this->getVmPluginMethod($virtuemart_paymentmethod_id))) {
