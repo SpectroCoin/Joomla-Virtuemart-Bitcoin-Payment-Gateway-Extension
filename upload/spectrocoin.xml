@@ -6,7 +6,7 @@
   <author>Alex Shinkevich</author>
   <authorEmail>alex.shinkevich@gmail.com</authorEmail>
   <copyright>Copyright (C) 2017</copyright>
-  <license>https://bitbucket.org/alexshiii/spectrocoin-virtuemart MIT</license>
+	<license>GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html</license>
   <version status="MINOR">1.0.0</version>
   <description>SpectroCoin payment plugin</description>
 
@@ -53,4 +53,7 @@
       </fieldset>
     </fields>
   </config>
+      <updateservers>
+		<server type="extension" priority="1" name="spectrocoin.com">https://github.com/SpectroCoin/Joomla-Virtuemart-Bitcoin-Payment-Gateway-Extension/archive/refs/heads/master.zip</server>
+    </updateservers>
 </extension>

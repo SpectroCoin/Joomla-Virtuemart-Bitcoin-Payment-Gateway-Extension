@@ -3,7 +3,9 @@
 /**
  * Created by UAB Spectro Fincance.
  * This is a sample SpectroCoin Merchant v1.1 API PHP client
+ * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
  */
+defined('_JEXEC') or die('Restricted access');
 
 include_once('httpful.phar');
 include_once('components/FormattingUtil.php');

@@ -1,4 +1,8 @@
 <?php
+
+/**
+ * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
+ */
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
 define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');
@@ -64,8 +68,8 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         JFactory::getApplication()->close();
     }
 
-    const SCPLUGIN_PATH = JPATH_PLUGINS.DS.'vmpayment'.DS.'spectrocoin';
-    const SCPLUGIN_CLIENT_PATH = self::SCPLUGIN_PATH.DS.'lib'.DS.'SCMerchantClient';
+    const SCPLUGIN_PATH = JPATH_PLUGINS.'/vmpayment/spectrocoin';
+    const SCPLUGIN_CLIENT_PATH = self::SCPLUGIN_PATH.'/lib/SCMerchantClient';
 
     protected static function getSCClientByMethod($method) {
         self::includeClassFile('SCMerchantClient', [self::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);

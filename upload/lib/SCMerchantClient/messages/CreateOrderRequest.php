@@ -1,5 +1,11 @@
 <?php
 
+defined('_JEXEC') or die('Restricted access');
+
+	/**
+	 * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
+	 */
+
 class CreateOrderRequest
 {
 	private $orderId;
