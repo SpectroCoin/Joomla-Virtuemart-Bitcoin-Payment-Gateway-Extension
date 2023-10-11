@@ -15,7 +15,6 @@ include_once('data/OrderCallback.php');
 include_once('messages/CreateOrderRequest.php');
 include_once('messages/CreateOrderResponse.php');
 
-
 class SCMerchantClient
 {
 
@@ -70,7 +69,7 @@ class SCMerchantClient
 			'successUrl' => 'http://localhost.com',
 			'failureUrl' => 'http://localhost.com'
 		);
-
+		$this->checkCurrency();
 		$formHandler = new \Httpful\Handlers\FormHandler();
 		$data = $formHandler->serialize($payload);
 		$signature = $this->generateSignature($data);
@@ -98,11 +97,12 @@ class SCMerchantClient
 		$privateKey = $this->privateMerchantKey != null ? $this->privateMerchantKey : file_get_contents($this->privateMerchantCertLocation);
 		$pkeyid = openssl_pkey_get_private($privateKey);
 
-		// compute signature
 		$s = openssl_sign($data, $signature, $pkeyid, OPENSSL_ALGO_SHA1);
 		$encodedSignature = base64_encode($signature);
 		// free the key from memory
-		openssl_free_key($pkeyid);
+		if (PHP_VERSION_ID < 80000) {
+			openssl_free_key($pkeyid); //maintaining the deprecated function for older php versions < 8.0
+		}
 
 		return $encodedSignature;
 	}
@@ -160,6 +160,25 @@ class SCMerchantClient
 		return $valid;
 	}
 
+	private function checkCurrency()
+  	{	
+		$jsonFile = file_get_contents(JPATH_ROOT . '\plugins\vmpayment\spectrocoin\lib\SCMerchantClient\data\acceptedCurrencies.JSON');
+		$acceptedCurrencies = json_decode($jsonFile, true);
+		// Get current cart currency
+		if (!class_exists( 'VmConfig' )) require(JPATH_ADMINISTRATOR.DS.'components'.DS.'com_virtuemart'.DS.'helpers'.DS.'config.php');
+        $config = VmConfig::loadConfig();
+		$currency_model = VmModel::getModel('currency');
+		$displayCurrency = $currency_model->getCurrency( $this->product->product_currency );
+		$currentCurrencyIsoCode = $displayCurrency->currency_code_3;
+		if (in_array($currentCurrencyIsoCode, $acceptedCurrencies)) {
+		    return true;
+		} 
+		else {
+		    return false;
+		}
+
+	}
+
 	/**
 	 * @param $data
 	 * @param $signature
@@ -171,7 +190,9 @@ class SCMerchantClient
 		$publicKey = file_get_contents($this->publicSpectroCoinCertLocation);
 		$public_key_pem = openssl_pkey_get_public($publicKey);
 		$r = openssl_verify($data, $sig, $public_key_pem, OPENSSL_ALGO_SHA1);
-		openssl_free_key($public_key_pem);
+		if (PHP_VERSION_ID < 80000) {
+			openssl_free_key($public_key_pem); //maintaining the deprecated function for older php versions < 8.0
+		}
 
 		return $r;
 	}
