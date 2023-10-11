@@ -134,8 +134,32 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         return true;
     }
 
+    private function checkCurrency()
+    {	
+        $jsonFile = file_get_contents(JPATH_ROOT . '\plugins\vmpayment\spectrocoin\lib\SCMerchantClient\data\acceptedCurrencies.JSON');
+        $acceptedCurrencies = json_decode($jsonFile, true);
+        // Get current cart currency
+        if (!class_exists( 'VmConfig' )) require(JPATH_ADMINISTRATOR.DS.'components'.DS.'com_virtuemart'.DS.'helpers'.DS.'config.php');
+        $config = VmConfig::loadConfig();
+        $currency_model = VmModel::getModel('currency');
+        $displayCurrency = $currency_model->getCurrency( $this->product->product_currency );
+        $currentCurrencyIsoCode = $displayCurrency->currency_code_3;
+        if (in_array($currentCurrencyIsoCode, $acceptedCurrencies)) {
+            return true;
+        } 
+        else {
+            return false;
+        }
+    }
 
     public function plgVmDisplayListFEPayment(VirtueMartCart $cart, $selected = 0, &$htmlIn) {
+
+        $shouldHideSpectroCoin = true;  // Replace this with your specific condition
+
+        if (!$this->checkCurrency()) {
+            return '';
+        }
+
         $session = JFactory::getSession();
         $errors  = $session->get('errorMessages', 0, 'vm');
         if ($errors != "") {

@@ -69,7 +69,6 @@ class SCMerchantClient
 			'successUrl' => 'http://localhost.com',
 			'failureUrl' => 'http://localhost.com'
 		);
-		$this->checkCurrency();
 		$formHandler = new \Httpful\Handlers\FormHandler();
 		$data = $formHandler->serialize($payload);
 		$signature = $this->generateSignature($data);
@@ -158,25 +157,6 @@ class SCMerchantClient
 		}
 
 		return $valid;
-	}
-
-	private function checkCurrency()
-  	{	
-		$jsonFile = file_get_contents(JPATH_ROOT . '\plugins\vmpayment\spectrocoin\lib\SCMerchantClient\data\acceptedCurrencies.JSON');
-		$acceptedCurrencies = json_decode($jsonFile, true);
-		// Get current cart currency
-		if (!class_exists( 'VmConfig' )) require(JPATH_ADMINISTRATOR.DS.'components'.DS.'com_virtuemart'.DS.'helpers'.DS.'config.php');
-        $config = VmConfig::loadConfig();
-		$currency_model = VmModel::getModel('currency');
-		$displayCurrency = $currency_model->getCurrency( $this->product->product_currency );
-		$currentCurrencyIsoCode = $displayCurrency->currency_code_3;
-		if (in_array($currentCurrencyIsoCode, $acceptedCurrencies)) {
-		    return true;
-		} 
-		else {
-		    return false;
-		}
-
 	}
 
 	/**
