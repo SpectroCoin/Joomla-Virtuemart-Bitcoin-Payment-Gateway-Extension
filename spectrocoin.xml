@@ -49,7 +49,7 @@
 
         <!-- Other settings -->
         <field type="spacer" level="level1" />
-        <field name="payment_logo" type="checkbox" label="VMPAYMENT_SPECTROCOIN_LOGO_LABEL" checked = "true" description="VMPAYMENT_SPECTROCOIN_LOGO_DESCRIPTION" />
+        <field name="payment_logos" type="text" label="VMPAYMENT_SPECTROCOIN_LOGO_LABEL" description="VMPAYMENT_SPECTROCOIN_LOGO_DESCRIPTION" />
       </fieldset>
     </fields>
   </config>

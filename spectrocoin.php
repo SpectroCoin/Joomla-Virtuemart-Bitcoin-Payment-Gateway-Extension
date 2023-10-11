@@ -13,20 +13,7 @@ if (!class_exists('plgVmPaymentBaseSpectrocoin')) {
 }
 
 class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
-    
-    public function __construct(&$subject, $config) {
-        parent::__construct($subject, $config);
 
-        // Enqueue the CSS file for the payment settings page
-        $this->enqueueSettingsStyles();
-    }
-
-    // Method to enqueue the CSS file for the payment settings page
-    protected function enqueueSettingsStyles() {
-        JFactory::getApplication()->enqueueMessage('Some debug string(s)');
-        echo "class";
-        JHtml::_('stylesheet', 'plugins/vmpayment/spectrocoin/assets/spectrocoin_settings.css', array('version' => 'auto'));
-    }
     public function plgVmOnPaymentNotification() {
         self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
         self::includeClassFile('ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'ApiError.php']);
@@ -79,9 +66,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         }
 
         JFactory::getApplication()->close();
-
     }
-
 
     const SCPLUGIN_PATH = JPATH_PLUGINS.'/vmpayment/spectrocoin';
     const SCPLUGIN_CLIENT_PATH = self::SCPLUGIN_PATH.'/lib/SCMerchantClient';
