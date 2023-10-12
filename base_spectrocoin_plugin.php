@@ -134,7 +134,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         return true;
     }
 
-    private function checkCurrency()
+    private function checkCartCurrency()
     {	
         $jsonFile = file_get_contents(JPATH_ROOT . '\plugins\vmpayment\spectrocoin\lib\SCMerchantClient\data\acceptedCurrencies.JSON');
         $acceptedCurrencies = json_decode($jsonFile, true);
@@ -153,10 +153,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
     }
 
     public function plgVmDisplayListFEPayment(VirtueMartCart $cart, $selected = 0, &$htmlIn) {
-
-        $shouldHideSpectroCoin = true;  // Replace this with your specific condition
-
-        if (!$this->checkCurrency()) {
+        if (!$this->checkCartCurrency()) {
             return '';
         }
 

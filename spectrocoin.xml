@@ -3,8 +3,8 @@
 <extension version="3.2" type="plugin" group="vmpayment" method="upgrade">
   <name>VM Payment - SpectroCoin</name>
   <creationDate>June 12th 2017</creationDate>
-  <author>Alex Shinkevich</author>
-  <authorEmail>alex.shinkevich@gmail.com</authorEmail>
+  <author>Spectrocoin</author>
+  <authorEmail>merchant@spectrocoin.com</authorEmail>
   <copyright>Copyright (C) 2017</copyright>
 	<license>GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html</license>
   <version status="MINOR">1.0.0</version>
@@ -23,11 +23,12 @@
   </languages>
 
   <config>
+
     <fields name="params">
       <fieldset name="basic">
         <!-- Connection options -->
         <field type="spacer" default="VMPAYMENT_SPECTROCOIN_CREDENTIALS_LABEL" level="level1" />
-        <!-- <field name="api_url" type="url" default="https://spectrocoin.com/api/merchant/1" scope="com_virtuemart" label="VMPAYMENT_SPECTROCOIN_API_URL_LABEL" description="VMPAYMENT_SPECTROCOIN_API_URL_DESCRIPTION" /> -->
+
         <field name="merchant_id" type="text" label="VMPAYMENT_SPECTROCOIN_MERCHANT_ID_LABEL" description="VMPAYMENT_SPECTROCOIN_MERCHANT_ID_DESCRIPTION"/>
         <field name="project_id" type="text" label="VMPAYMENT_SPECTROCOIN_PROJECT_ID_LABEL" description="VMPAYMENT_SPECTROCOIN_PROJECT_ID_DESCRIPTION"/>
         <field name="private_key" type="textarea" label="VMPAYMENT_SPECTROCOIN_PRIVATE_KEY_LABEL" description="VMPAYMENT_SPECTROCOIN_PRIVATE_KEY_DESCRIPTION"/>
@@ -46,10 +47,6 @@
           <option value="pay">VMPAYMENT_SPECTROCOIN_PAYMENT_METHOD_PAY_LABEL</option>
           <option value="receive">VMPAYMENT_SPECTROCOIN_PAYMENT_METHOD_RECEIVE_LABEL</option>
         </field>
-
-        <!-- Other settings -->
-        <field type="spacer" level="level1" />
-        <field name="payment_logos" type="text" label="VMPAYMENT_SPECTROCOIN_LOGO_LABEL" description="VMPAYMENT_SPECTROCOIN_LOGO_DESCRIPTION" />
       </fieldset>
     </fields>
   </config>
