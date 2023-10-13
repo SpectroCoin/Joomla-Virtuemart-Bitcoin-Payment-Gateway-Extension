@@ -27,6 +27,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         $this->tableFields = array_keys($this->getTableSQLFields());
 
         $this->setConfigParameterable($this->_configTableFieldName, $this->getVarsToPush());
+        $this->notice("<b>Spectrocoin:</b> Make sure you select the same currency in your payment settings as in your shop settings.");
     }
 
     public static function includeClassFile($className, array $segments) {
@@ -176,6 +177,11 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         }
         $stamp = date('YdmHis000000') . $tz_minutes;
         return $stamp;
+    }
+
+    public function notice($message){
+        $app = JFactory::getApplication();
+        $app->enqueueMessage($message, 'notice');
     }
 
 }
