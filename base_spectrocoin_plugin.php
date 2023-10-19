@@ -27,7 +27,10 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         $this->tableFields = array_keys($this->getTableSQLFields());
 
         $this->setConfigParameterable($this->_configTableFieldName, $this->getVarsToPush());
-        $this->notice("<b>Spectrocoin:</b> Make sure you select the same currency in your payment settings as in your shop settings.");
+
+        if($this->isAdmin()){
+            $this->notice("<b>Spectrocoin:</b> Make sure you select the same currency in your payment settings as in your shop settings.");
+        }
     }
 
     public static function includeClassFile($className, array $segments) {
@@ -184,4 +187,15 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         $app->enqueueMessage($message, 'notice');
     }
 
-}
+    public function isAdmin(){
+        $user = JFactory::getUser();
+        $authorize = $user->authorise('core.admin');
+        if ($authorize) {
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+}   

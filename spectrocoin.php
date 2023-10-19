@@ -158,14 +158,57 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
 			exit;
 		}
 		elseif($response instanceof ApiError) {
-			// TODO: translation
-			JFactory::getApplication()->enqueueMessage("SpectroCoin error: " . $response->getCode() . ": " . $response->getMessage());
+            $this->renderResponseErrorCode($response->getCode(), $response->getMessage());
 		}
 		else {
-			// TODO: translation
 			JFactory::getApplication()->enqueueMessage("Unknown SpectroCoin error.");
 		}
 
 		return true;
     }
+
+
+    protected function renderResponseErrorCode($errorCode, $errorMessage)
+	{
+		$errorCauses = array(
+			2 => '<li>Check your private key</li>',
+			3 => '<li>Your shop FIAT currency is not supported by SpectroCoin, change it if possible</li>',
+			6 => '<li>Check your merchantApiId and userId</li>',
+			99 => '<li>Incorrect url</li>
+			<li>Incorrect Parameters or Data Format</li>
+			<li>Required Parameters Missing</li>
+			<li>Unsupported currency</li>'
+		);
+		echo '<link rel="stylesheet" href="' . JPATH_ROOT . '\plugins\vmpayment\spectrocoin\views\css\error-response.css" type="text/css" media="all" />';
+		echo '
+			<div class="container">
+				<div class="content_container">
+					<div class="header_container">
+						<h3>Error: '. $errorCode . ' ' . $errorMessage . '</h3>
+					</div>
+					<div class="content_content">
+						<div class="form_body">';
+
+		if (!empty($errorCauses[$errorCode])) {
+			echo '
+				<div class="form_content possible_cause">
+					<span class="form-header">Possible causes:</span>
+					<ul class="form-causes-list">' . $errorCauses[$errorCode] . '</ul>
+				</div>';
+		}
+
+		echo '
+							<a href=' . JPATH_SITE . '><button>Return to shop</button></a>
+						</div>
+					</div>
+					<div class="footer_container">
+						<div class="footer_link">
+							<a href="mailto:merchant@spectrocoin.com">Contact support</a>
+						</div>
+					</div>
+				</div>
+			</div>';
+	}
+
+
 }
