@@ -28,9 +28,11 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
 
         $this->setConfigParameterable($this->_configTableFieldName, $this->getVarsToPush());
 
-        // if($this->isAdmin()){
-        //     $this->notice("<b>Spectrocoin:</b> Make sure you select the same currency in your payment settings as in your shop settings.");
-        // }
+        if ($this->isAdmin()) {
+            $shopsLink = JRoute::_('index.php?option=com_virtuemart&view=user&task=editshop');
+            $notice = '<b>SpectroCoin:</b> Make sure you select the same currency in your SpectroCoin payment settings as in your ' . '<a target="_blank" href="' . $shopsLink . '">shop</a>' . ' settings';
+            $this->notice($notice);
+        }
     }
     
     public static function includeClassFile($className, array $segments) {
