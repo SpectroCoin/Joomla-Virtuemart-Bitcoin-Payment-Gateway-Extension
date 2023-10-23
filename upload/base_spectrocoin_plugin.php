@@ -27,19 +27,20 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         $this->tableFields = array_keys($this->getTableSQLFields());
 
         $this->setConfigParameterable($this->_configTableFieldName, $this->getVarsToPush());
-    }
 
+        // if($this->isAdmin()){
+        //     $this->notice("<b>Spectrocoin:</b> Make sure you select the same currency in your payment settings as in your shop settings.");
+        // }
+    }
+    
     public static function includeClassFile($className, array $segments) {
         if (!class_exists($className)) {
             require_once implode(DS, $segments);
         }
     }
-
     public function getVmPluginCreateTableSQL() {
         return $this->createTableSQL('Payment SpectroCoin Table');
     }
-
-
     public function getTableSQLFields() {
         return array(
             'id'                          => 'int(1) UNSIGNED NOT NULL AUTO_INCREMENT',
@@ -134,8 +135,11 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         return true;
     }
 
-
     public function plgVmDisplayListFEPayment(VirtueMartCart $cart, $selected = 0, &$htmlIn) {
+        if (!$this->checkCartCurrency()) {
+            return '';
+        }
+
         $session = JFactory::getSession();
         $errors  = $session->get('errorMessages', 0, 'vm');
         if ($errors != "") {
@@ -147,7 +151,32 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         return $this->displayListFE($cart, $selected, $htmlIn);
     }
 
-    
+    /**
+     * Function which checks if the currency of the cart is supported by SpectroCoin
+     * The list of supported currencies is in the acceptedCurrencies.JSON file
+     * @return bool
+     */
+    private function checkCartCurrency()
+    {	
+        $jsonFile = file_get_contents(JPATH_ROOT . '\plugins\vmpayment\spectrocoin\lib\SCMerchantClient\data\acceptedCurrencies.JSON');
+        $acceptedCurrencies = json_decode($jsonFile, true);
+        // Get current cart currency
+        if (!class_exists( 'VmConfig' )) require(JPATH_ADMINISTRATOR.DS.'components'.DS.'com_virtuemart'.DS.'helpers'.DS.'config.php');
+        $config = VmConfig::loadConfig();
+        $currency_model = VmModel::getModel('currency');
+        $displayCurrency = $currency_model->getCurrency( $this->product->product_currency );
+        $currentCurrencyIsoCode = $displayCurrency->currency_code_3;
+        if (in_array($currentCurrencyIsoCode, $acceptedCurrencies)) {
+            return true;
+        } 
+        else {
+            return false;
+        }
+    }
+    /**
+     * Function which GMT timestamp
+     * @return string
+     */
     public function getGMTTimeStamp() {
         $tz_minutes = date('Z') / 60;
         if ($tz_minutes >= 0) {
@@ -156,5 +185,26 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
         $stamp = date('YdmHis000000') . $tz_minutes;
         return $stamp;
     }
+    /**
+     * Function which shows Joomla notice
+     */
+    public function notice($message){
+        $app = JFactory::getApplication();
+        $app->enqueueMessage($message, 'notice');
+    }
+    /**
+     * Function which checks if user is logged in as admin
+     * @return bool
+     */
+    public function isAdmin(){
+        $user = JFactory::getUser();
+        $authorize = $user->authorise('core.admin');
+        if ($authorize) {
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
 
-}
+}   

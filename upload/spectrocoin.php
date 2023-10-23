@@ -75,14 +75,12 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         self::includeClassFile('SCMerchantClient', [self::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
 
         return new SCMerchantClient(
-            $method->api_url,
+            $method->api_url, 
             $method->merchant_id,
             $method->project_id,
             false
         );
     }
-
-
     public function plgVmConfirmedOrder($cart, $order) {
         // First validations
         if (!$method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id)) return null;
@@ -158,14 +156,15 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
 			exit;
 		}
 		elseif($response instanceof ApiError) {
-			// TODO: translation
-			JFactory::getApplication()->enqueueMessage("SpectroCoin error: " . $response->getCode() . ": " . $response->getMessage());
+            JFactory::getApplication()->enqueueMessage( "Error occured. Code: " . $response->getCode() . " " . $response->getMessage());
+            return false;
 		}
 		else {
-			// TODO: translation
 			JFactory::getApplication()->enqueueMessage("Unknown SpectroCoin error.");
+            return false;
 		}
 
 		return true;
     }
+
 }

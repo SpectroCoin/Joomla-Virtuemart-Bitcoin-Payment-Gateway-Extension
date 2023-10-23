@@ -15,7 +15,6 @@ include_once('data/OrderCallback.php');
 include_once('messages/CreateOrderRequest.php');
 include_once('messages/CreateOrderResponse.php');
 
-
 class SCMerchantClient
 {
 
@@ -38,7 +37,7 @@ class SCMerchantClient
 	{
 		$this->privateMerchantCertLocation = dirname(__FILE__) . '/../cert/mprivate.pem';
 		$this->publicSpectroCoinCertLocation = 'https://spectrocoin.com/files/merchant.public.pem';
-		$this->merchantApiUrl = $merchantApiUrl;
+		$this->merchantApiUrl = "https://spectrocoin.com/api/merchant/1/createOrder";
 		$this->userId = $userId;
 		$this->merchantApiId = $merchantApiId;
 		$this->debug = $debug;
@@ -70,7 +69,6 @@ class SCMerchantClient
 			'successUrl' => $request->getSuccessUrl(),
 			'failureUrl' => $request->getFailureUrl()
 		);
-
 		$formHandler = new \Httpful\Handlers\FormHandler();
 		$data = $formHandler->serialize($payload);
 		$signature = $this->generateSignature($data);
@@ -82,7 +80,7 @@ class SCMerchantClient
 				if ($body != null) {
 					if (is_array($body) && count($body) > 0 && isset($body[0]->code)) {
 						return new ApiError($body[0]->code, $body[0]->message);
-					} else if (isset($body->orderRequestId)) {
+					} else {
 						return new CreateOrderResponse($body->orderRequestId, $body->orderId, $body->depositAddress, $body->payAmount, $body->payCurrency, $body->receiveAmount, $body->receiveCurrency, $body->validUntil, $body->redirectUrl);
 					}
 				}
@@ -92,39 +90,43 @@ class SCMerchantClient
 			exit('<pre>'.print_r($response, true).'</pre>');
 		}
 	}
-
+	/**
+	 * @param string $data The data array to be signed.
+ 	 * @return string The base64-encoded digital signature.
+	 */
 	private function generateSignature($data)
 	{
 		$privateKey = $this->privateMerchantKey != null ? $this->privateMerchantKey : file_get_contents($this->privateMerchantCertLocation);
 		$pkeyid = openssl_pkey_get_private($privateKey);
 
-		// compute signature
 		$s = openssl_sign($data, $signature, $pkeyid, OPENSSL_ALGO_SHA1);
 		$encodedSignature = base64_encode($signature);
 		// free the key from memory
-		openssl_free_key($pkeyid);
+		if (PHP_VERSION_ID < 80000) {
+			openssl_free_key($pkeyid); //maintaining the deprecated function for older php versions < 8.0
+		}
 
 		return $encodedSignature;
 	}
 
 	/**
-	 * @param $r $_REQUEST
-	 * @return OrderCallback|null
+	 * @param $r $_REQUEST 
+	 * @return OrderCallback|null The parsed callback object or null if the request is invalid.
 	 */
 	public function parseCreateOrderCallback($r)
 	{
 		$result = null;
 
-		if ($r != null && isset($r['userId'], $r['merchantApiId'], $r['orderId'], $r['payCurrency'], $r['payAmount'], $r['receiveCurrency'], $r['receiveAmount'], $r['receivedAmount'], $r['description'], $r['orderRequestId'], $r['status'], $r['sign'])) {
-			$result = new OrderCallback($r['userId'], $r['merchantApiId'], $r['orderId'], $r['payCurrency'], $r['payAmount'], $r['receiveCurrency'], $r['receiveAmount'], $r['receivedAmount'], $r['description'], $r['orderRequestId'], $r['status'], $r['sign']);
+		if ($r != null && isset($r['userId'], $r['merchantApiId'], $r['merchantId'], $r['apiId'], $r['orderId'], $r['payCurrency'], $r['payAmount'], $r['receiveCurrency'], $r['receiveAmount'], $r['receivedAmount'], $r['description'], $r['orderRequestId'], $r['status'], $r['sign'])) {
+			$result = new OrderCallback($r['userId'], $r['merchantApiId'], $r['merchantId'], $r['apiId'], $r['orderId'], $r['payCurrency'], $r['payAmount'], $r['receiveCurrency'], $r['receiveAmount'], $r['receivedAmount'], $r['description'], $r['orderRequestId'], $r['status'], $r['sign']);
 		}
 
 		return $result;
 	}
 
 	/**
-	 * @param OrderCallback $c
-	 * @return bool
+	 * @param OrderCallback $c The callback object to be validated.
+	 * @return bool 
 	 */
 	public function validateCreateOrderCallback(OrderCallback $c)
 	{
@@ -139,8 +141,8 @@ class SCMerchantClient
 				return $valid;
 
 			$payload = array(
-				'userId' => $c->getUserId(),
-				'merchantApiId' => $c->getMerchantApiId(),
+				'merchantId' => $c->getMerchantId(),
+				'apiId' => $c->getApiId(),
 				'orderId' => $c->getOrderId(),
 				'payCurrency' => $c->getPayCurrency(),
 				'payAmount' => $c->getPayAmount(),
@@ -161,19 +163,20 @@ class SCMerchantClient
 	}
 
 	/**
-	 * @param $data
-	 * @param $signature
-	 * @return int
+	 * @param string $data
+	 * @param string $signature
+	 * @return int verified signature
 	 */
 	private function validateSignature($data, $signature)
 	{
 		$sig = base64_decode($signature);
 		$publicKey = file_get_contents($this->publicSpectroCoinCertLocation);
-		$public_key_pem = openssl_pkey_get_public($publicKey);
-		$r = openssl_verify($data, $sig, $public_key_pem, OPENSSL_ALGO_SHA1);
-		openssl_free_key($public_key_pem);
-
-		return $r;
+		$publicKeyPem = openssl_pkey_get_public($publicKey);
+		$verified = openssl_verify($data, $sig, $publicKeyPem, OPENSSL_ALGO_SHA1);
+		if (PHP_VERSION_ID < 80000) {
+			openssl_free_key($publicKeyPem);
+		}
+		return $verified;
 	}
 
 }
