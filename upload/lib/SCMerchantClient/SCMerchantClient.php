@@ -65,9 +65,9 @@ class SCMerchantClient
 			'receiveAmount' => $request->getReceiveAmount(),
 			'description' => $request->getDescription(),
 			'culture' => $request->getCulture(),
-			'callbackUrl' => 'http://localhost.com',
-			'successUrl' => 'http://localhost.com',
-			'failureUrl' => 'http://localhost.com'
+			'callbackUrl' => $request->getCallbackUrl(),
+			'successUrl' => $request->getSuccessUrl(),
+			'failureUrl' => $request->getFailureUrl()
 		);
 		$formHandler = new \Httpful\Handlers\FormHandler();
 		$data = $formHandler->serialize($payload);
@@ -90,7 +90,10 @@ class SCMerchantClient
 			exit('<pre>'.print_r($response, true).'</pre>');
 		}
 	}
-
+	/**
+	 * @param string $data The data array to be signed.
+ 	 * @return string The base64-encoded digital signature.
+	 */
 	private function generateSignature($data)
 	{
 		$privateKey = $this->privateMerchantKey != null ? $this->privateMerchantKey : file_get_contents($this->privateMerchantCertLocation);
@@ -107,8 +110,8 @@ class SCMerchantClient
 	}
 
 	/**
-	 * @param $r $_REQUEST
-	 * @return OrderCallback|null
+	 * @param $r $_REQUEST 
+	 * @return OrderCallback|null The parsed callback object or null if the request is invalid.
 	 */
 	public function parseCreateOrderCallback($r)
 	{
@@ -122,8 +125,8 @@ class SCMerchantClient
 	}
 
 	/**
-	 * @param OrderCallback $c
-	 * @return bool
+	 * @param OrderCallback $c The callback object to be validated.
+	 * @return bool 
 	 */
 	public function validateCreateOrderCallback(OrderCallback $c)
 	{
@@ -160,21 +163,20 @@ class SCMerchantClient
 	}
 
 	/**
-	 * @param $data
-	 * @param $signature
-	 * @return int
+	 * @param string $data
+	 * @param string $signature
+	 * @return int verified signature
 	 */
 	private function validateSignature($data, $signature)
 	{
 		$sig = base64_decode($signature);
 		$publicKey = file_get_contents($this->publicSpectroCoinCertLocation);
-		$public_key_pem = openssl_pkey_get_public($publicKey);
-		$r = openssl_verify($data, $sig, $public_key_pem, OPENSSL_ALGO_SHA1);
+		$publicKeyPem = openssl_pkey_get_public($publicKey);
+		$verified = openssl_verify($data, $sig, $publicKeyPem, OPENSSL_ALGO_SHA1);
 		if (PHP_VERSION_ID < 80000) {
-			openssl_free_key($public_key_pem); //maintaining the deprecated function for older php versions < 8.0
+			openssl_free_key($publicKeyPem);
 		}
-
-		return $r;
+		return $verified;
 	}
 
 }

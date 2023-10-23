@@ -9,7 +9,7 @@
 	<license>GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html</license>
   <version status="MINOR">1.0.0</version>
   <description>SpectroCoin payment plugin</description>
-
+  <scriptfile>install.php</scriptfile>
   <files>
     <filename plugin="spectrocoin">spectrocoin.php</filename>
     <filename plugin="spectrocoin">base_spectrocoin_plugin.php</filename>
