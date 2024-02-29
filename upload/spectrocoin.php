@@ -81,9 +81,10 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
 
         return new SCMerchantClient(
             $method->api_url, 
+            $method->auth_url,
             $method->merchant_id,
-            $method->project_id,
-            false
+            $method->client_id,
+            $method->client_secret,
         );
     }
     public function plgVmConfirmedOrder($cart, $order) {
@@ -104,48 +105,50 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         $client = self::getSCClientByMethod($method);
 
         // Util data
-        $uriBaseVirtuemart = JURI::root().'index.php?option=com_virtuemart';
+        $uri_base_virtuemart = JURI::root().'index.php?option=com_virtuemart';
 
         // Prepare data
-        $orderID         = $order['details']['BT']->virtuemart_order_id;
-        $paymentMethodID = $order['details']['BT']->virtuemart_paymentmethod_id;
-        $orderNumber     = $order['details']['BT']->order_number;
-        $currencyCode    = shopFunctions::getCurrencyByID($method->currency_id, 'currency_code_3');
-        $total           = round($order['details']['BT']->order_total, 2); // @todo - change to utility class method
-        $description     = "Order $orderNumber at " . basename(JUri::base()); // TODO: translation
-        $culture         = explode('-', JFactory::getLanguage()->getTag())[0];
-        $uriCallback     = (JROUTE::_($uriBaseVirtuemart.'&view=pluginresponse&task=pluginnotification&tmpl=component'));
-        $uriSuccess      = (JROUTE::_($uriBaseVirtuemart.'&view=pluginresponse&task=pluginresponsereceived&pm='.$paymentMethodID));
-        $uriFailure      = (JROUTE::_($uriBaseVirtuemart.'&view=cart'));
+        $order_id              = $order['details']['BT']->virtuemart_order_id;
+        $payment_method_id     = $order['details']['BT']->virtuemart_paymentmethod_id;
+        $order_number          = $order['details']['BT']->order_number;
+        $receive_currency_code = shopFunctions::getCurrencyByID($method->currency_id, 'currency_code_3');
+        $pay_currency_code     = 'BTC';
+        $receive_amount        = round($order['details']['BT']->order_total, 2); // @todo - change to utility class method
+        $description           = "Order $order_number at " . basename(JUri::base()); // TODO: translation
+        $callback_url          = (JROUTE::_($uri_base_virtuemart.'&view=pluginresponse&task=pluginnotification&tmpl=component'));
+        $success_url           = (JROUTE::_($uri_base_virtuemart.'&view=pluginresponse&task=pluginresponsereceived&pm='.$payment_method_id));
+        $failure_url           = (JROUTE::_($uri_base_virtuemart.'&view=cart'));
+        $locale                = explode('-', JFactory::getLanguage()->getTag())[0];
 
+        // TO-DO: test, because previously it was parsing only fiat currency, now it parses fiat and btc
         if ($method->payment_method == 'pay') {
             // Create request
             $request = new SpectroCoin_CreateOrderRequest(
-                $orderNumber,
-                $currencyCode,
-                $total,
-                $currencyCode,
-                null,
+                $order_id,
                 $description,
-                $culture,
-                $uriCallback,
-                $uriSuccess,
-                $uriFailure
+                $receive_amount,
+                $receive_currency_code,
+                null,
+                $pay_currency_code,
+                $callback_url,
+                $success_url,
+                $failure_url,
+                $locale
             );
         }
         else {
             // Create request
             $request = new SpectroCoin_CreateOrderRequest(
-                $orderNumber,
-                $currencyCode,
-                null,
-                $currencyCode,
-                $total,
+                $order_id,
                 $description,
-                $culture,
-                $uriCallback,
-                $uriSuccess,
-                $uriFailure
+                null,
+                $receive_currency_code,
+                $receive_amount,
+                $pay_currency_code,
+                $callback_url,
+                $success_url,
+                $failure_url,
+                $locale
             );
         }
 
