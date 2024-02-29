@@ -17,7 +17,6 @@ require __DIR__ . '/../../vendor/autoload.php';
 
 class SCMerchantClient
 {
-	private $registry;
 
 	private $merchant_api_url;
 	private $project_id;
@@ -39,7 +38,6 @@ class SCMerchantClient
 	 */
 	function __construct($merchant_api_url, $project_id, $client_id, $client_secret, $auth_url)
 	{
-		$this->registry = $registry;
 
 		$this->merchant_api_url = $merchant_api_url;
 		$this->project_id = $project_id;

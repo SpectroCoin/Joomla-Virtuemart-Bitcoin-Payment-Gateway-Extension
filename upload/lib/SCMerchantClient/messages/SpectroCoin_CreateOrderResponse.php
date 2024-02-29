@@ -6,9 +6,9 @@ defined('_JEXEC') or die('Restricted access');
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
  */
 
-class SpectroCoin_CreateOrderResponse
-{
-
+ class SpectroCoin_CreateOrderResponse
+ {
+ 
 	private $depositAddress;
 	private $orderId;
 	private $orderRequestId;
@@ -20,7 +20,7 @@ class SpectroCoin_CreateOrderResponse
 	private $redirectUrl;
 
 	/**
-	 * @param $orderRequestId
+	* @param $orderRequestId
 	* @param $orderId
 	* @param $depositAddress
 	* @param $payAmount
@@ -114,4 +114,4 @@ class SpectroCoin_CreateOrderResponse
 	{
 		return $this->redirectUrl;
 	}
-}
+ }
