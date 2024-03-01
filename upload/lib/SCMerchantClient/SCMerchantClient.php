@@ -6,6 +6,8 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
 
+use Joomla\CMS\Factory;
+
 include_once('components/SpectroCoin_Utilities.php');
 include_once('data/SpectroCoin_ApiError.php');
 include_once('data/SpectroCoin_OrderStatusEnum.php');
@@ -29,25 +31,26 @@ class SCMerchantClient
 	private $public_spectrocoin_cert_location;
 	protected $guzzle_client;
 
+
 	/**
 	 * @param $merchant_api_url
 	 * @param $project_id
 	 * @param $client_id
 	 * @param $client_secret
 	 * @param $auth_url
+	 * @param $guzzle_client
+	 * @param $public_spectrocoin_cert_location
 	 */
 	function __construct($merchant_api_url, $project_id, $client_id, $client_secret, $auth_url)
 	{
-
 		$this->merchant_api_url = $merchant_api_url;
 		$this->project_id = $project_id;
 		$this->client_id = $client_id;
 		$this->client_secret = $client_secret;
 		$this->auth_url = $auth_url;
-
 		$this->guzzle_client = new Client();
 		$this->public_spectrocoin_cert_location = "https://test.spectrocoin.com/public.pem"; //PROD:https://spectrocoin.com/files/merchant.public.pem
-		//$this->encryption_key
+		
 	}
 
 	/**
@@ -234,11 +237,13 @@ class SCMerchantClient
 	}
 
 	private function store_encrypted_data($encrypted_access_token_data) {
-		// ??
+		$session = JFactory::getSession();
+		$session->set('encrypted_access_token', $encrypted_access_token_data);
 	}
 
 	private function retrieve_encrypted_data() {
-		// ??
+		$session = JFactory::getSession();
+		return $session->get('encrypted_access_token');
 	}
 
 	// --------------- VALIDATION AND SANITIZATION BEFORE REQUEST -----------------
