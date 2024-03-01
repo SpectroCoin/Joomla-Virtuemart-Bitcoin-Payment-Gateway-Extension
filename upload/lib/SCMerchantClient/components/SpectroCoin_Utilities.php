@@ -23,19 +23,19 @@ class SpectroCoin_Utilities
 	 */
 	public static function spectrocoinEncryptAuthData($data, $encryption_key) {
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-        $encryptedData = openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
-        return base64_encode($encryptedData . '::' . $iv); // Store $iv with encrypted data
+        $encrypte_data = openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+        return base64_encode($encrypte_data . '::' . $iv); // Store $iv with encrypted data
     }
 
 	/**
 	 * Decrypts the given encrypted data using the given encryption key.
-	 * @param string $encryptedDataWithIv The encrypted data to decrypt.
+	 * @param string $encrypte_dataWithIv The encrypted data to decrypt.
 	 * @param string $encryption_key The encryption key to use.
 	 * @return string The decrypted data.
 	 */
-	public static function spectrocoinDecryptAuthData($encryptedDataWithIv, $encryption_key) {
-        list($encryptedData, $iv) = explode('::', base64_decode($encryptedDataWithIv), 2);
-        return openssl_decrypt($encryptedData, 'aes-256-cbc', $encryption_key, 0, $iv);
+	public static function spectrocoinDecryptAuthData($encrypte_dataWithIv, $encryption_key) {
+        list($encrypte_data, $iv) = explode('::', base64_decode($encrypte_dataWithIv), 2);
+        return openssl_decrypt($encrypte_data, 'aes-256-cbc', $encryption_key, 0, $iv);
     }
 
 	/**
