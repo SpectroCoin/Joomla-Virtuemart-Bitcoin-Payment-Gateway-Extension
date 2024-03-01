@@ -210,58 +210,6 @@ class SCMerchantClient
 		return $session->get('encrypted_access_token');
 	}
 
-	// --------------- VALIDATION AND SANITIZATION BEFORE REQUEST -----------------
-
-	/**
-     * Payload data sanitization for create order
-     * @param array $payload
-     * @return array
-     */
-    private function spectrocoin_sanitize_create_order_payload($payload) {
-		$sanitized_payload = [
-			'orderId' => sanitize_text_field($payload['orderId']),
-			'projectId' => sanitize_text_field($payload['projectId']), // Assuming you need to sanitize this as well
-			'description' => sanitize_text_field($payload['description']),
-			'payAmount' => filter_var($payload['payAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
-			'payCurrencyCode' => sanitize_text_field($payload['payCurrencyCode']),
-			'receiveAmount' => filter_var($payload['receiveAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
-			'receiveCurrencyCode' => sanitize_text_field($payload['receiveCurrencyCode']),
-			'callbackUrl' => filter_var($payload['callbackUrl'], FILTER_SANITIZE_URL),
-			'successUrl' => filter_var($payload['successUrl'], FILTER_SANITIZE_URL),
-			'failureUrl' => filter_var($payload['failureUrl'], FILTER_SANITIZE_URL),
-		];
-		return $sanitized_payload;
-    }
-
-    /**
-     * Payload data validation for create order
-     * @param array $sanitized_payload
-     * @return bool
-     */
-	private function spectrocoin_validate_create_order_payload($sanitized_payload) {
-		return isset(
-			$sanitized_payload['orderId'],
-			$sanitized_payload['projectId'],
-			$sanitized_payload['description'],
-			$sanitized_payload['payAmount'],
-			$sanitized_payload['payCurrencyCode'],
-			$sanitized_payload['receiveAmount'],
-			$sanitized_payload['receiveCurrencyCode'],
-			$sanitized_payload['callbackUrl'],
-			$sanitized_payload['successUrl'],
-			$sanitized_payload['failureUrl']
-		) &&
-		!empty($sanitized_payload['orderId']) &&
-		!empty($sanitized_payload['projectId']) && 
-		strlen($sanitized_payload['payCurrencyCode']) === 3 &&
-		is_numeric($sanitized_payload['payAmount']) &&
-		is_numeric($sanitized_payload['receiveAmount']) &&
-		strlen($sanitized_payload['receiveCurrencyCode']) === 3 &&
-		filter_var($sanitized_payload['callbackUrl'], FILTER_VALIDATE_URL) &&
-		filter_var($sanitized_payload['successUrl'], FILTER_VALIDATE_URL) &&
-		filter_var($sanitized_payload['failureUrl'], FILTER_VALIDATE_URL) &&
-		($sanitized_payload['payAmount'] > 0 || $sanitized_payload['receiveAmount'] > 0);
-	}
 		
 	// --------------- VALIDATION AND SANITIZATION BEFORE REQUEST -----------------
 
