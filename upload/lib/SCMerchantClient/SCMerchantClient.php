@@ -236,11 +236,19 @@ class SCMerchantClient
 		return isset($this->access_token_data['expires_at']) && $current_time < $this->access_token_data['expires_at'];
 	}
 
+	/**
+	 * Stores the encrypted access token data in JFactory session
+	 * @param string $encrypted_access_token_data
+	 */
 	private function store_encrypted_data($encrypted_access_token_data) {
 		$session = JFactory::getSession();
 		$session->set('encrypted_access_token', $encrypted_access_token_data);
 	}
 
+	/**
+	 * Retrieves the encrypted access token data from JFactory session
+	 * @param string $encrypted_access_token_data
+	 */
 	private function retrieve_encrypted_data() {
 		$session = JFactory::getSession();
 		return $session->get('encrypted_access_token');
