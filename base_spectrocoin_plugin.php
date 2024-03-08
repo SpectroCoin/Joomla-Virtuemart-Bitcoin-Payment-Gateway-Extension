@@ -160,7 +160,8 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
      */
     private function checkCartCurrency()
     {	
-        $jsonFile = file_get_contents(JPATH_ROOT . '\plugins\vmpayment\spectrocoin\lib\SCMerchantClient\data\acceptedCurrencies.JSON');
+        $jsonPath = JPATH_ROOT . '/plugins/vmpayment/spectrocoin/lib/SCMerchantClient/data/acceptedCurrencies.JSON';
+        $jsonFile = file_get_contents($jsonPath);
         $acceptedCurrencies = json_decode($jsonFile, true);
         // Get current cart currency
         if (!class_exists( 'VmConfig' )) require(JPATH_ADMINISTRATOR.DS.'components'.DS.'com_virtuemart'.DS.'helpers'.DS.'config.php');

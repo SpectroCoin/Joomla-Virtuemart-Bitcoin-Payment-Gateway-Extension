@@ -3,7 +3,7 @@
 <extension version="3.2" type="plugin" group="vmpayment" method="upgrade">
   <name>VM Payment - SpectroCoin</name>
   <creationDate>June 12th 2017</creationDate>
-  <author>Spectrocoin</author>
+  <author>SpectroCoin</author>
   <authorEmail>merchant@spectrocoin.com</authorEmail>
   <copyright>Copyright (C) 2017</copyright>
 	<license>GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html</license>
@@ -29,9 +29,9 @@
         <!-- Connection options -->
         <field type="spacer" default="VMPAYMENT_SPECTROCOIN_CREDENTIALS_LABEL" level="level1" />
 
-        <field name="merchant_id" type="text" label="VMPAYMENT_SPECTROCOIN_MERCHANT_ID_LABEL" description="VMPAYMENT_SPECTROCOIN_MERCHANT_ID_DESCRIPTION"/>
         <field name="project_id" type="text" label="VMPAYMENT_SPECTROCOIN_PROJECT_ID_LABEL" description="VMPAYMENT_SPECTROCOIN_PROJECT_ID_DESCRIPTION"/>
-        <field name="private_key" type="textarea" label="VMPAYMENT_SPECTROCOIN_PRIVATE_KEY_LABEL" description="VMPAYMENT_SPECTROCOIN_PRIVATE_KEY_DESCRIPTION"/>
+        <field name="client_id" type="text" label="VMPAYMENT_SPECTROCOIN_CLIENT_ID_LABEL" description="VMPAYMENT_SPECTROCOIN_CLIENT_ID_DESCRIPTION"/>
+        <field name="client_secret" type="textarea" label="VMPAYMENT_SPECTROCOIN_CLIENT_SECRET_LABEL" description="VMPAYMENT_SPECTROCOIN_CLIENT_SECRET_DESCRIPTION"/>
 
         <!-- Order statuses options -->
         <field type="spacer" default="VMPAYMENT_SPECTROCOIN_STATUSES_LABEL" level="level1" />
@@ -41,7 +41,6 @@
         <field name="failed_status" type="vmorderstate" scope="com_virtuemart" label="VMPAYMENT_SPECTROCOIN_FAILED_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_FAILED_STATUS_DESCRIPTION" />
         <field name="expired_status" type="vmorderstate" scope="com_virtuemart" label="VMPAYMENT_SPECTROCOIN_EXPIRED_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_EXPIRED_STATUS_DESCRIPTION" />
         <field name="test_status" type="vmorderstate" scope="com_virtuemart" label="VMPAYMENT_SPECTROCOIN_TEST_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_TEST_STATUS_DESCRIPTION" />
-
 
         <field name="payment_method" type="list" default="live" label="VMPAYMENT_SPECTROCOIN_PAYMENT_METHOD_LABEL" description="VMPAYMENT_SPECTROCOIN_PAYMENT_METHOD_DESCRIPTION">
           <option value="pay">VMPAYMENT_SPECTROCOIN_PAYMENT_METHOD_PAY_LABEL</option>
