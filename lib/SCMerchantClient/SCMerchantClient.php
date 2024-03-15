@@ -15,7 +15,7 @@ include_once('data/SpectroCoin_OrderCallback.php');
 include_once('messages/SpectroCoin_CreateOrderRequest.php');
 include_once('messages/SpectroCoin_CreateOrderResponse.php');
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
 class SCMerchantClient
 {
@@ -41,13 +41,13 @@ class SCMerchantClient
 	 * @param $guzzle_client
 	 * @param $public_spectrocoin_cert_location
 	 */
-	function __construct($merchant_api_url, $project_id, $client_id, $client_secret, $auth_url)
+	function __construct($auth_url, $merchant_api_url, $project_id, $client_id, $client_secret)
 	{
+		$this->auth_url = $auth_url;
 		$this->merchant_api_url = $merchant_api_url;
 		$this->project_id = $project_id;
 		$this->client_id = $client_id;
 		$this->client_secret = $client_secret;
-		$this->auth_url = $auth_url;
 		$this->guzzle_client = new Client();
 		$this->public_spectrocoin_cert_location = "https://test.spectrocoin.com/public.pem"; //PROD:https://spectrocoin.com/files/merchant.public.pem
 		

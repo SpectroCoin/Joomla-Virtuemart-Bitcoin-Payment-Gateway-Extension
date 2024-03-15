@@ -35,7 +35,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
                     $post_data[$key] = $_REQUEST[$key]; //TODO gali buti kad $_POST
                 }
             }
-            $callback = $client->spectrocoin_process_callback($post_data);
+            $callback = $client->spectrocoinProcessCallback($post_data);
             
             $new_status = '';
             switch ($callback->getStatus()) {
@@ -78,11 +78,10 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
 
     protected static function getSCClientByMethod($method) {
         self::includeClassFile('SCMerchantClient', [self::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
-
         return new SCMerchantClient(
-            $method->api_url, 
-            $method->auth_url,
-            $method->merchant_id,
+            "https://test.spectrocoin.com/api/public",
+            "https://test.spectrocoin.com/api/public/oauth/token",
+            $method->project_id,
             $method->client_id,
             $method->client_secret,
         );
@@ -95,9 +94,9 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         // Include needed files
         self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
         self::includeClassFile('VirtueMartModelCurrency', [JPATH_VM_ADMINISTRATOR, 'models', 'currency.php']);
-        self::includeClassFile('ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'ApiError.php']);
-        self::includeClassFile('CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'CreateOrderRequest.php']);
-        self::includeClassFile('CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'CreateOrderResponse.php']);
+        self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
+        self::includeClassFile('SpectroCoin_CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderRequest.php']);
+        self::includeClassFile('SpectroCoin_CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderResponse.php']);
 
         VmConfig::loadJLang('com_virtuemart', true);
         VmConfig::loadJLang('com_virtuemart_orders', true);
@@ -152,7 +151,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
             );
         }
 
-        $response = $client->spectrocoin_create_order($request);
+        $response = $client->spectrocoinCreateOrder($request);
 
         if($response instanceof SpectroCoin_CreateOrderResponse) {
 			$model = VmModel::getModel('orders');
