@@ -15,6 +15,7 @@
     <filename plugin="spectrocoin">base_spectrocoin_plugin.php</filename>
     <folder>lib</folder>
     <folder>language</folder>
+    <folder>vendor</folder>
   </files>
 
   <languages>
