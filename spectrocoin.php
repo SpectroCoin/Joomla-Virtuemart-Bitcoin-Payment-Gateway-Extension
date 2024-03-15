@@ -79,8 +79,8 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
     protected static function getSCClientByMethod($method) {
         self::includeClassFile('SCMerchantClient', [self::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
         return new SCMerchantClient(
-            "https://test.spectrocoin.com/api/public",
             "https://test.spectrocoin.com/api/public/oauth/token",
+            "https://test.spectrocoin.com/api/public",
             $method->project_id,
             $method->client_id,
             $method->client_secret,

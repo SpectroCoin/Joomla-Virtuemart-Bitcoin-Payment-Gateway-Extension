@@ -71,6 +71,10 @@ class SCMerchantClient
 			return new SpectroCoin_ApiError('AuthError', 'Failed to obtain access token');
 		}
 
+		else if ($this->access_token_data instanceof SpectroCoin_ApiError) {
+			return $this->access_token_data;
+		}
+
 		$payload = array(
 			"orderId" => $request->getOrderId(),
 			"projectId" => $this->project_id,
@@ -127,7 +131,7 @@ class SCMerchantClient
 	}
 	
 	/**
-     * Retrieves the current access token data from PrestaShop's configuration.
+     * Retrieves the current access token data from configuration.
      * If the token is expired or not present, attempts to refresh it.
      * 
      * @return array|null The access token data array if valid or successfully refreshed, null otherwise.
@@ -176,7 +180,7 @@ class SCMerchantClient
 			$this->access_token_data = $data;
 			return $this->access_token_data;
 		} catch (GuzzleException $e) {
-			return new SpectroCoin_ApiError('Failed to refresh access token', $e->getMessage());
+			return new SpectroCoin_ApiError('Failed to refresh access token. It is possible that when creating an API in SpectroCoin settings, you did not assign all merchant scopes.', $e->getMessage());
 		}
 	}
 
@@ -229,7 +233,6 @@ class SCMerchantClient
 			'callbackUrl' => filter_var($payload['callbackUrl'], FILTER_SANITIZE_URL), // Sanitizes URL
 			'successUrl' => filter_var($payload['successUrl'], FILTER_SANITIZE_URL), // Sanitizes URL
 			'failureUrl' => filter_var($payload['failureUrl'], FILTER_SANITIZE_URL), // Sanitizes URL
-			'lang' => htmlspecialchars(trim($payload['lang'])) // Removes any HTML tags and trims whitespace
 		];
 		return $sanitized_payload;
 	}
@@ -251,7 +254,6 @@ class SCMerchantClient
 			$sanitized_payload['callbackUrl'],
 			$sanitized_payload['successUrl'],
 			$sanitized_payload['failureUrl'],
-			$sanitized_payload['lang']
 		) &&
 		!empty($sanitized_payload['orderId']) &&
 		!empty($sanitized_payload['projectId']) && 
@@ -262,7 +264,6 @@ class SCMerchantClient
 		filter_var($sanitized_payload['callbackUrl'], FILTER_VALIDATE_URL) &&
 		filter_var($sanitized_payload['successUrl'], FILTER_VALIDATE_URL) &&
 		filter_var($sanitized_payload['failureUrl'], FILTER_VALIDATE_URL) &&
-		!empty($sanitized_payload['lang']) &&
 		($sanitized_payload['payAmount'] > 0 || $sanitized_payload['receiveAmount'] > 0);
 	}
 		
