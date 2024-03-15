@@ -152,11 +152,10 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         }
 
         $response = $client->spectrocoinCreateOrder($request);
-        $test = 2;
         if($response instanceof SpectroCoin_CreateOrderResponse) {
 			$model = VmModel::getModel('orders');
-			$order['order_status'] = 'C';
-			$model->updateStatusForOneOrder($order['details']['BT']->virtuemart_order_id, $order, true);
+			$order['order_status'] = 'P'; //#TO-DO check when testing callbacks
+			$model->updateStatusForOneOrder($order_id, $order); //#TO-DO check when testing callbacks
 			$this->emptyCart(null);
 			JFactory::getApplication()->redirect($response->getRedirectUrl());
 			exit;
