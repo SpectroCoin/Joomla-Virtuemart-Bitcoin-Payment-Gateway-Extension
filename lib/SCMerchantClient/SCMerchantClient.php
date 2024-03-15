@@ -75,16 +75,16 @@ class SCMerchantClient
 		}
 
 		$payload = array(
-			"orderId" => $request->getOrderId(),
+			"orderId" => $request->getOrderId() . rand(1, 10),
 			"projectId" => $this->project_id,
 			"description" => $request->getDescription(),
 			"payAmount" => $request->getPayAmount(),
 			"payCurrencyCode" => $request->getPayCurrencyCode(),
 			"receiveAmount" => $request->getReceiveAmount(),
 			"receiveCurrencyCode" => $request->getReceiveCurrencyCode(),
-			'callbackUrl' => $request->getCallbackUrl(),
-			'successUrl' => $request->getSuccessUrl(),
-			'failureUrl' => $request->getFailureUrl()
+			'callbackUrl' => 'http://localhost.com',
+			'successUrl' => 'http://localhost.com',
+			'failureUrl' => 'http://localhost.com'
 		);
 
 		$sanitized_payload = $this->spectrocoinSanitizeOrderPayload($payload);
@@ -105,16 +105,17 @@ class SCMerchantClient
 			$body = json_decode($response->getBody()->getContents(), true);
 
 			return new SpectroCoin_CreateOrderResponse(
+					$body['preOrderId'],
+					$body['orderId'],
+					$body['validUntil'],
+					$body['payCurrencyCode'],
+					$body['payNetworkCode'],
+					$body['receiveCurrencyCode'],
+					$body['payAmount'],
+					$body['receiveAmount'],
 					$body['depositAddress'],
 					$body['memo'],
-					$body['orderId'],
-					$body['payAmount'],
-					$body['payCurrencyCode'],
-					$body['preOrderId'],
-					$body['receiveAmount'],
-					$body['receiveCurrencyCode'],
 					$body['redirectUrl'],
-					$body['validUntil']
 			);
 
 		} catch (RequestException $e) {
@@ -157,17 +158,18 @@ class SCMerchantClient
 			$body = json_decode($response->getBody()->getContents(), true);
 
 			return new SpectroCoin_CreateOrderResponse(
+				$body['preOrderId'],
+				$body['orderId'],
+				$body['validUntil'],
+				$body['payCurrencyCode'],
+				$body['payNetworkCode'],
+				$body['receiveCurrencyCode'],
+				$body['payAmount'],
+				$body['receiveAmount'],
 				$body['depositAddress'],
 				$body['memo'],
-				$body['orderId'],
-				$body['payAmount'],
-				$body['payCurrencyCode'],
-				$body['preOrderId'],
-				$body['receiveAmount'],
-				$body['receiveCurrencyCode'],
 				$body['redirectUrl'],
-				$body['validUntil']
-			);
+		);
 
 		} catch (GuzzleException $e) {
 			return new SpectroCoin_ApiError($e->getCode(), $e->getMessage());

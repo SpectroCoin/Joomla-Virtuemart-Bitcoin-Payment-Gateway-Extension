@@ -152,7 +152,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         }
 
         $response = $client->spectrocoinCreateOrder($request);
-
+        $test = 2;
         if($response instanceof SpectroCoin_CreateOrderResponse) {
 			$model = VmModel::getModel('orders');
 			$order['order_status'] = 'C';
