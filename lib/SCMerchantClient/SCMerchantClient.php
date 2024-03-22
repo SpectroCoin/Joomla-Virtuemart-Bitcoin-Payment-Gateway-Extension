@@ -50,7 +50,7 @@ class SCMerchantClient
 		$this->client_secret = $client_secret;
 		$this->guzzle_client = new Client();
 		$this->public_spectrocoin_cert_location = "https://test.spectrocoin.com/public.pem"; //PROD:https://spectrocoin.com/files/merchant.public.pem
-		
+		$this->encryption_key = $this->spectrocoinInitializeEncryptionKey();
 	}
 
 	/**
@@ -66,9 +66,9 @@ class SCMerchantClient
 	public function spectrocoinCreateOrder(SpectroCoin_CreateOrderRequest $request)
 	{
 		$this->access_token_data = $this->spectrocoinGetAccessTokenData();
-
+		
 		if (!$this->access_token_data) {
-			return new SpectroCoin_ApiError('AuthError', 'Failed to obtain access token');
+			return new SpectroCoin_ApiError('AuthError', 'Failed to obtain or refresh access token');
 		}
 		else if ($this->access_token_data instanceof SpectroCoin_ApiError) {
 			return $this->access_token_data;
@@ -230,6 +230,28 @@ class SCMerchantClient
 		}
 	}
 
+	/**
+	 * Initializes the encryption key for Spectrocoin.
+	 *
+	 * This function retrieves the encryption key from the Joomla configuration. If the key is empty,
+	 * it generates a new random key and saves it in the configuration. The updated configuration is then saved.
+	 *
+	 * @return string The encryption key.
+	 */
+	private function spectrocoinInitializeEncryptionKey()
+	{
+		$config = JFactory::getConfig();
+		$key = $config->get('spectrocoin_encryption_key');
+		if (empty($key)) {
+			$key = bin2hex(random_bytes(32));
+			$config->set('spectrocoin_encryption_key', $key);
+			$factory = new JConfig();
+			JFactory::getConfig()->save($factory);
+		}
+		return $key;
+	}
+
+
 
 	/**
 	 * Checks if the current access token is valid by comparing the current time against the token's expiration time. A buffer can be applied to ensure the token is refreshed before it actually expires.
@@ -258,6 +280,8 @@ class SCMerchantClient
 		$session = JFactory::getSession();
 		return $session->get('encrypted_access_token');
 	}
+
+	
 
 		
 	// --------------- VALIDATION AND SANITIZATION BEFORE REQUEST -----------------
