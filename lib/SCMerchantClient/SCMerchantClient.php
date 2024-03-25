@@ -230,60 +230,64 @@ class SCMerchantClient
 		}
 	}
 
-	/**
-	 * Initializes the encryption key for Spectrocoin.
-	 *
-	 * This function retrieves the encryption key from the Joomla configuration. If the key is empty,
-	 * it generates a new random key and saves it in the configuration. The updated configuration is then saved.
-	 *
-	 * @return string The encryption key.
-	 */
-	private function spectrocoinInitializeEncryptionKey()
-	{
-		$config = JFactory::getConfig();
-		$key = $config->get('spectrocoin_encryption_key');
+
+	private function spectrocoinInitializeEncryptionKey() {
+		$db = JFactory::getDbo();
+		$query = $db->getQuery(true);
+	
+		$query->select($db->quoteName('params'))
+			  ->from($db->quoteName('#__extensions'))
+			  ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin')) // Replace 'spectrocoin' with your actual plugin element name
+			  ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
+	
+		$db->setQuery($query);
+		$paramsJson = $db->loadResult();
+	
+		$params = new JRegistry;
+		$params->loadString($paramsJson);
+	
+		$key = $params->get('spectrocoin_encryption_key', '');
 		if (empty($key)) {
 			$key = bin2hex(random_bytes(32));
-			$config->set('spectrocoin_encryption_key', $key);
-			$factory = new JConfig();
-			JFactory::getConfig()->save($factory);
+	
+			$params->set('spectrocoin_encryption_key', $key);
+			
+			$query = $db->getQuery(true)
+						->update($db->quoteName('#__extensions'))
+						->set($db->quoteName('params') . ' = ' . $db->quote((string)$params))
+						->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin')) // Replace 'spectrocoin' with your actual plugin element name
+						->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
+	
+			$db->setQuery($query);
+			$db->execute();
 		}
+	
 		return $key;
 	}
 
-
-
-	/**
-	 * Checks if the current access token is valid by comparing the current time against the token's expiration time. A buffer can be applied to ensure the token is refreshed before it actually expires.
-	 *
-	 * @param int $currentTime The current timestamp, typically obtained using `time()`.
-	 * @return bool Returns true if the token is valid (i.e., not expired), false otherwise.
-	 */
 	private function spectrocoinIsTokenValid($currentTime) {
 		return isset($this->access_token_data['expires_at']) && $currentTime < $this->access_token_data['expires_at'];
 	}
 
-	/**
-	 * Stores the encrypted access token data in JFactory session
-	 * @param string $encrypted_access_token_data
-	 */
+
 	private function storeEncryptedData($encrypted_access_token_data) {
 		$session = JFactory::getSession();
-		$session->set('encrypted_access_token', $encrypted_access_token_data);
+		if (!$session->isActive()) {
+			$session->start();
+		}
+		$session->set('spectrocoin_encrypted_access_token', $encrypted_access_token_data);
 	}
 
-	/**
-	 * Retrieves the encrypted access token data from JFactory session
-	 * @param string $encrypted_access_token_data
-	 */
+
 	private function retrieveEncryptedData() {
 		$session = JFactory::getSession();
-		return $session->get('encrypted_access_token');
+		if (!$session->isActive()) {
+			$session->start();
+		}
+		return $session->get('spectrocoin_encrypted_access_token', null); 
 	}
 
 	
-
-		
 	// --------------- VALIDATION AND SANITIZATION BEFORE REQUEST -----------------
 
 	/**

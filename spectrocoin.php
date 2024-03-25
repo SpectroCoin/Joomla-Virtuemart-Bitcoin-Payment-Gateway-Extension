@@ -75,7 +75,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
 
     const SCPLUGIN_PATH = JPATH_PLUGINS.'/vmpayment/spectrocoin';
     const SCPLUGIN_CLIENT_PATH = self::SCPLUGIN_PATH.'/lib/SCMerchantClient';
-
     protected static function getSCClientByMethod($method) {
         self::includeClassFile('SCMerchantClient', [self::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
         return new SCMerchantClient(
@@ -84,6 +83,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
             $method->project_id,
             $method->client_id,
             $method->client_secret,
+            
         );
     }
     public function plgVmConfirmedOrder($cart, $order) {
