@@ -119,43 +119,25 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         $failure_url           = (JROUTE::_($uri_base_virtuemart.'&view=cart'));
         $locale                = explode('-', JFactory::getLanguage()->getTag())[0];
 
-        // TO-DO: test, because previously it was parsing only fiat currency, now it parses fiat and btc
-        if ($method->payment_method == 'pay') {
-            // Create request
-            $request = new SpectroCoin_CreateOrderRequest(
-                $order_id,
-                $description,
-                $receive_amount,
-                $receive_currency_code,
-                null,
-                $pay_currency_code,
-                $callback_url,
-                $success_url,
-                $failure_url,
-                $locale
-            );
-        }
-        else {
-            // Create request
-            $request = new SpectroCoin_CreateOrderRequest(
-                $order_id,
-                $description,
-                null,
-                $receive_currency_code,
-                $receive_amount,
-                $pay_currency_code,
-                $callback_url,
-                $success_url,
-                $failure_url,
-                $locale
-            );
-        }
+
+        $request = new SpectroCoin_CreateOrderRequest(
+            $order_id,
+            $description,
+            null,
+            $receive_currency_code,
+            $receive_amount,
+            $pay_currency_code,
+            $callback_url,
+            $success_url,
+            $failure_url,
+            $locale
+        );
 
         $response = $client->spectrocoinCreateOrder($request);
         if($response instanceof SpectroCoin_CreateOrderResponse) {
 			$model = VmModel::getModel('orders');
-			$order['order_status'] = 'P'; //#TO-DO check when testing callbacks
-			$model->updateStatusForOneOrder($order_id, $order); //#TO-DO check when testing callbacks
+			$order['order_status'] = 'P';
+			$model->updateStatusForOneOrder($order_id, $order);
 			$this->emptyCart(null);
 			JFactory::getApplication()->redirect($response->getRedirectUrl());
 			exit;
