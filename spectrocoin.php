@@ -118,8 +118,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         $success_url           = (JROUTE::_($uri_base_virtuemart.'&view=pluginresponse&task=pluginresponsereceived&pm='.$payment_method_id));
         $failure_url           = (JROUTE::_($uri_base_virtuemart.'&view=cart'));
         $locale                = explode('-', JFactory::getLanguage()->getTag())[0];
-
-
+        
         $request = new SpectroCoin_CreateOrderRequest(
             $order_id,
             $description,
