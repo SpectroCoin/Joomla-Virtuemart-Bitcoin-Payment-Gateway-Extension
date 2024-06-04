@@ -17,9 +17,8 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
     public function plgVmOnPaymentNotification() {
         self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
         self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
-
         try {
-            $order_Id = VirtueMartModelOrders::getOrderIdByOrderNumber($_REQUEST['orderId']);
+            $order_Id = VirtueMartModelOrders::getOrderIdByOrderNumber($_REQUEST['orderId']) . ;
             $order         = VirtueMartModelOrders::getOrder($order_Id);
             $model_order    = VmModel::getModel('orders');
 
@@ -97,7 +96,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
         self::includeClassFile('SpectroCoin_CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderRequest.php']);
         self::includeClassFile('SpectroCoin_CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderResponse.php']);
-    
+
         VmConfig::loadJLang('com_virtuemart', true);
         VmConfig::loadJLang('com_virtuemart_orders', true);
     
@@ -107,7 +106,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         $uri_base_virtuemart = JURI::root().'index.php?option=com_virtuemart';
     
         // Prepare data
-        $order_id              = $order['details']['BT']->virtuemart_order_id;
+        $order_id              = $order['details']['BT']->virtuemart_order_id . substr(md5(rand(1, pow(2, 16))), 0, 8);
         $payment_method_id     = $order['details']['BT']->virtuemart_paymentmethod_id;
         $order_number          = $order['details']['BT']->order_number;
         $receive_currency_code = shopFunctions::getCurrencyByID($method->currency_id, 'currency_code_3');

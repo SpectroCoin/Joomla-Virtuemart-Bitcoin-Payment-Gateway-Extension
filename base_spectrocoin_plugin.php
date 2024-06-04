@@ -7,7 +7,6 @@ defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
 define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');
 
-// Manually include some 
 if (!class_exists('vmPSPlugin')) {
     require(implode(DS, [JPATH_VM_PLUGINS, 'vmpsplugin.php']));
 }

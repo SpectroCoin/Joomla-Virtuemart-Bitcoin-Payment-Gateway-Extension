@@ -45,5 +45,5 @@ class SpectroCoin_Utilities
 	public static function spectrocoinGenerateEncryptionKey() {
 		$key = openssl_random_pseudo_bytes(32); // 256 bits
 		return base64_encode($key); // Encode to base64 for easy storage
-	}	
+	}
 }
