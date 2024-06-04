@@ -90,22 +90,22 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         // First validations
         if (!$method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id)) return null;
         if (!$this->selectedThisElement($method->payment_element)) return false;
-
+    
         // Include needed files
         self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
         self::includeClassFile('VirtueMartModelCurrency', [JPATH_VM_ADMINISTRATOR, 'models', 'currency.php']);
         self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
         self::includeClassFile('SpectroCoin_CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderRequest.php']);
         self::includeClassFile('SpectroCoin_CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderResponse.php']);
-
+    
         VmConfig::loadJLang('com_virtuemart', true);
         VmConfig::loadJLang('com_virtuemart_orders', true);
-
+    
         $client = self::getSCClientByMethod($method);
-
+    
         // Util data
         $uri_base_virtuemart = JURI::root().'index.php?option=com_virtuemart';
-
+    
         // Prepare data
         $order_id              = $order['details']['BT']->virtuemart_order_id;
         $payment_method_id     = $order['details']['BT']->virtuemart_paymentmethod_id;
@@ -131,26 +131,29 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
             $failure_url,
             $locale
         );
-
+    
         $response = $client->spectrocoinCreateOrder($request);
         if($response instanceof SpectroCoin_CreateOrderResponse) {
-			$model = VmModel::getModel('orders');
-			$order['order_status'] = 'P';
-			$model->updateStatusForOneOrder($order_id, $order);
-			$this->emptyCart(null);
-			JFactory::getApplication()->redirect($response->getRedirectUrl());
-			exit;
-		}
-		elseif($response instanceof SpectroCoin_ApiError) {
-            JFactory::getApplication()->enqueueMessage( "Error occured. Code: " . $response->getCode() . " " . $response->getMessage());
+            $model = VmModel::getModel('orders');
+            $order['order_status'] = 'P';
+            $model->updateStatusForOneOrder($order_id, $order);
+            
+            // Clear the cart to ensure the order ID is not reused
+            $cart->emptyCart();
+            
+            JFactory::getApplication()->redirect($response->getRedirectUrl());
+            exit;
+        }
+        elseif($response instanceof SpectroCoin_ApiError) {
+            JFactory::getApplication()->enqueueMessage( "Error occurred. Code: " . $response->getCode() . " " . $response->getMessage());
             return false;
-		}
-		else {
-			JFactory::getApplication()->enqueueMessage("Unknown SpectroCoin error.");
+        }
+        else {
+            JFactory::getApplication()->enqueueMessage("Unknown SpectroCoin error.");
             return false;
-		}
-
-		return true;
+        }
+    
+        return true;
     }
 
 }
