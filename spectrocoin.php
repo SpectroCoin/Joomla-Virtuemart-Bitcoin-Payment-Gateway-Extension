@@ -85,7 +85,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
                     break;
                 default:
                     JLog::add('Unknown order status: ' . $callback->getStatus(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
-                    echo 'Unknown order status: ' . $callback->getStatus();
                     exit;
             }
 
