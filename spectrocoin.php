@@ -114,9 +114,10 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
 
         $uriBaseVirtuemart = JURI::root() . 'index.php?option=com_virtuemart';
 
-        $orderId = $order['details']['BT']->virtuemart_order_id . substr(md5(rand(1, pow(2, 16))), 0, 8);
+        $virtueOrderId = $order['details']['BT']->virtuemart_order_id;
         $paymentMethodId = $order['details']['BT']->virtuemart_paymentmethod_id;
         $orderNumber = $order['details']['BT']->order_number;
+        $scOrderNumber ="SC-" . $virtueOrderId . "-" . $orderNumber . "-" . rand(1000, 9999);
         $receiveCurrencyCode = shopFunctions::getCurrencyByID($method->currency_id, 'currency_code_3');
         $payCurrencyCode = 'BTC';
         $receiveAmount = round($order['details']['BT']->order_total, 2);
@@ -125,9 +126,9 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         $successUrl = (JROUTE::_($uriBaseVirtuemart . '&view=pluginresponse&task=pluginresponsereceived&pm=' . $paymentMethodId));
         $failureUrl = (JROUTE::_($uriBaseVirtuemart . '&view=cart'));
         $locale = explode('-', JFactory::getLanguage()->getTag())[0];
-
+  
         $request = new SpectroCoin_CreateOrderRequest(
-            $orderId,
+            $scOrderNumber,
             $description,
             null,
             $receiveCurrencyCode,
@@ -143,7 +144,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         if ($response instanceof SpectroCoin_CreateOrderResponse) {
             $model = VmModel::getModel('orders');
             $order['order_status'] = 'P';
-            $model->updateStatusForOneOrder($orderId, $order);
+            $model->updateStatusForOneOrder($virtueOrderId, $order);
 
             $cart->emptyCart();
 
