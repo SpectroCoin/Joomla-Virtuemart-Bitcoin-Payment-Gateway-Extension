@@ -18,7 +18,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
         self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
         try {
-            $order_Id = VirtueMartModelOrders::getOrderIdByOrderNumber($_REQUEST['orderId']) . ;
+            $order_Id = VirtueMartModelOrders::getOrderIdByOrderNumber($_REQUEST['orderId']);
             $order         = VirtueMartModelOrders::getOrder($order_Id);
             $model_order    = VmModel::getModel('orders');
 
