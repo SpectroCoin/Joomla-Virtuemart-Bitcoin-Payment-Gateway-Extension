@@ -374,9 +374,9 @@ class SCMerchantClient
 			'merchantId' => htmlspecialchars(trim($post_data['merchantId'])),
 			'apiId' => htmlspecialchars(trim($post_data['apiId'])),
 			'orderId' => htmlspecialchars(trim($post_data['orderId'])),
-			'payCurrencyCode' => htmlspecialchars(trim($post_data['payCurrencyCode'])),
+			'payCurrency' => htmlspecialchars(trim($post_data['payCurrency'])),
 			'payAmount' => filter_var($post_data['payAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
-			'receiveCurrencyCode' => htmlspecialchars(trim($post_data['receiveCurrencyCode'])),
+			'receiveCurrency' => htmlspecialchars(trim($post_data['receiveCurrency'])),
 			'receiveAmount' => filter_var($post_data['receiveAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
 			'receivedAmount' => filter_var($post_data['receivedAmount'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
 			'description' => htmlspecialchars(trim($post_data['description'])),
@@ -401,9 +401,9 @@ class SCMerchantClient
             $sanitized_data['merchantId'], 
             $sanitized_data['apiId'],
 			$sanitized_data['orderId'], 
-			$sanitized_data['payCurrencyCode'], 
+			$sanitized_data['payCurrency'], 
 			$sanitized_data['payAmount'], 
-			$sanitized_data['receiveCurrencyCode'], 
+			$sanitized_data['receiveCurrency'], 
 			$sanitized_data['receiveAmount'], 
 			$sanitized_data['receivedAmount'], 
 			$sanitized_data['description'], 
@@ -430,13 +430,13 @@ class SCMerchantClient
                 $is_valid = false;
                 $failed_fields[] = 'apiId is empty.';
             }
-			if (strlen($sanitized_data['payCurrencyCode']) !== 3) {
+			if (strlen($sanitized_data['payCurrency']) !== 3) {
 				$is_valid = false;
-				$failed_fields[] = 'payCurrencyCode is not 3 characters long.';
+				$failed_fields[] = 'payCurrency is not 3 characters long.';
 			}
-			if (strlen($sanitized_data['receiveCurrencyCode']) !== 3) {
+			if (strlen($sanitized_data['receiveCurrency']) !== 3) {
 				$is_valid = false;
-				$failed_fields[] = 'receiveCurrencyCode is not 3 characters long.';
+				$failed_fields[] = 'receiveCurrency is not 3 characters long.';
 			}
 			if (!is_numeric($sanitized_data['payAmount']) || $sanitized_data['payAmount'] <= 0) {
 				$is_valid = false;
@@ -486,9 +486,9 @@ class SCMerchantClient
 				'merchantId' => $order_callback->getMerchantId(),
 				'apiId' => $order_callback->getApiId(),
 				'orderId' => $order_callback->getOrderId(),
-				'payCurrencyCode' => $order_callback->getPayCurrency(),
+				'payCurrency' => $order_callback->getPayCurrency(),
 				'payAmount' => $order_callback->getPayAmount(),
-				'receiveCurrencyCode' => $order_callback->getReceiveCurrency(),
+				'receiveCurrency' => $order_callback->getReceiveCurrency(),
 				'receiveAmount' => $order_callback->getReceiveAmount(),
 				'receivedAmount' => $order_callback->getReceivedAmount(),
 				'description' => $order_callback->getDescription(),
