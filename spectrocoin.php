@@ -39,7 +39,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
         try {
             $input = JFactory::getApplication()->input;
             $orderId = $input->getInt('orderId');
-            JLog::add('Received orderId: ' . $orderId, JLog::DEBUG, 'plg_vmpayment_spectrocoin');
     
             $orderModel = new VirtueMartModelOrders();
             $order = $orderModel->getOrder($orderId);
@@ -56,7 +55,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
                 JLog::add('No payment method found for Order ID: ' . $orderId, JLog::ERROR, 'plg_vmpayment_spectrocoin');
                 return null;
             }
-            JLog::add('Payment method found: ' . json_encode($method), JLog::DEBUG, 'plg_vmpayment_spectrocoin');
     
             if (!$this->selectedThisElement($method->payment_element)) {
                 JLog::add('This payment element is not selected: ' . $method->payment_element, JLog::DEBUG, 'plg_vmpayment_spectrocoin');
@@ -64,58 +62,43 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
             }
     
             $client = self::getSCClientByMethod($method);
-            JLog::add('SC client initialized', JLog::DEBUG, 'plg_vmpayment_spectrocoin');
     
             $expectedKeys = ['userId', 'merchantApiId', 'merchantId', 'apiId', 'orderId', 'payCurrency', 'payAmount', 'receiveCurrency', 'receiveAmount', 'receivedAmount', 'description', 'orderRequestId', 'status', 'sign'];
             $postData = [];
             foreach ($expectedKeys as $key) {
                 $value = $input->get($key, '', 'string');
                 $postData[$key] = $value;
-                JLog::add('Received ' . $key . ': ' . $value, JLog::DEBUG, 'plg_vmpayment_spectrocoin');
             }
     
-            JLog::add('Callback data received: ' . json_encode($postData), JLog::DEBUG, 'plg_vmpayment_spectrocoin');
-    
             $callback = $client->spectrocoinProcessCallback($postData);
-            JLog::add('Callback processed: ' . json_encode($callback), JLog::DEBUG, 'plg_vmpayment_spectrocoin');
     
             $newStatus = '';
             switch ($callback->getStatus()) {
                 case SpectroCoin_OrderStatusEnum::$Test:
                     $newStatus = $method->test_status;
-                    JLog::add('Order status received: ' . $newStatus , JLog::DEBUG, 'plg_vmpayment_spectrocoin');
                     break;
                 case SpectroCoin_OrderStatusEnum::$New:
                     $newStatus = $method->new_status;
-                    JLog::add('Test order status received: ' . $newStatus , JLog::DEBUG, 'plg_vmpayment_spectrocoin');
                     break;
                 case SpectroCoin_OrderStatusEnum::$Pending:
                     $newStatus = $method->pending_status;
-                    JLog::add('Test order status received: ' . $newStatus , JLog::DEBUG, 'plg_vmpayment_spectrocoin');
                     break;
                 case SpectroCoin_OrderStatusEnum::$Expired:
                     $newStatus = $method->expired_status;
-                    JLog::add('Test order status received: ' . $newStatus , JLog::DEBUG, 'plg_vmpayment_spectrocoin');
                     break;
                 case SpectroCoin_OrderStatusEnum::$Failed:
                     $newStatus = $method->failed_status;
-                    JLog::add('Test order status received: ' . $newStatus , JLog::DEBUG, 'plg_vmpayment_spectrocoin');
                     break;
                 case SpectroCoin_OrderStatusEnum::$Paid:
                     $newStatus = $method->paid_status;
-                    JLog::add('Test order status received: ' . $newStatus , JLog::DEBUG, 'plg_vmpayment_spectrocoin');
                     break;
                 default:
                     JLog::add('Unknown order status: ' . $callback->getStatus(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
                     exit;
             }
     
-            JLog::add('Order ID: ' . $orderId . ' New status: ' . $newStatus, JLog::DEBUG, 'plg_vmpayment_spectrocoin');
-    
             $order['order_status'] = $newStatus;
-            $result = $model_order->updateStatusForOneOrder($orderId, $order, true);
-            JLog::add('Order status update result: ' . json_encode($result), JLog::DEBUG, 'plg_vmpayment_spectrocoin');
-    
+            $model_order->updateStatusForOneOrder($orderId, $order, true);
             echo '*ok*';
         } catch (Exception $e) {
             JLog::add($e->getMessage(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
@@ -137,7 +120,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
     }
 
     public function plgVmConfirmedOrder($cart, $order) {
-        JLog::add('plgVmConfirmedOrder initialized.', JLog::INFO, 'plg_vmpayment_spectrocoin');
         $method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id);
         if (!$method) return null;
         if (!$this->selectedThisElement($method->payment_element)) return false;
@@ -191,9 +173,11 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin {
             JFactory::getApplication()->redirect($response->getRedirectUrl());
             exit;
         } elseif ($response instanceof SpectroCoin_ApiError) {
+            JLog::add('Error occurred. Code: ' . $response->getCode() . ' ' . $response->getMessage(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
             JFactory::getApplication()->enqueueMessage("Error occurred. Code: " . $response->getCode() . " " . $response->getMessage());
             return false;
         } else {
+            JLog::add('Unknown SpectroCoin error.', JLog::ERROR, 'plg_vmpayment_spectrocoin');
             JFactory::getApplication()->enqueueMessage("Unknown SpectroCoin error.");
             return false;
         }
