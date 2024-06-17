@@ -60,6 +60,8 @@ _Migrated_: Since HTTPful is no longer maintained, we migrated to GuzzleHttp. In
 
 _Reworked_: SpectroCoin callback handling was reworked. Added appropriate callback routing for success, fail and callback.
 
+_Added_: plg_vmpayment_spectrocoin.log.php file for logging errors from spectrocoin.php
+
 ### 1.0.0 MAJOR (09/28/2023):
 
 _Removed_: "API URL" field in extension configuration, since is always the same.
