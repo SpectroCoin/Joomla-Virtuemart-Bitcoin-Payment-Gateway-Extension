@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types = 1);
+
 /**
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
  */
+
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
 define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');

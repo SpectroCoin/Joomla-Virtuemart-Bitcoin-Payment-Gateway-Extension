@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types = 1);
+
+use SpectroCoin\SCMerchantClient\Config;
+
 /**
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
  */
@@ -154,21 +158,15 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
 
     /**
      * Function which checks if the currency of the cart is supported by SpectroCoin
-     * The list of supported currencies is in the acceptedCurrencies.JSON file
      * @return bool
      */
-    private function checkCartCurrency()
+    private function checkCartCurrency(): bool
     {	
-        $jsonPath = JPATH_ROOT . '/plugins/vmpayment/spectrocoin/lib/SCMerchantClient/data/acceptedCurrencies.JSON';
-        $jsonFile = file_get_contents($jsonPath);
-        $acceptedCurrencies = json_decode($jsonFile, true);
-        // Get current cart currency
         if (!class_exists( 'VmConfig' )) require(JPATH_ADMINISTRATOR.DS.'components'.DS.'com_virtuemart'.DS.'helpers'.DS.'config.php');
-        $config = VmConfig::loadConfig();
         $currency_model = VmModel::getModel('currency');
         $displayCurrency = $currency_model->getCurrency( $this->product->product_currency );
         $currentCurrencyIsoCode = $displayCurrency->currency_code_3;
-        if (in_array($currentCurrencyIsoCode, $acceptedCurrencies)) {
+        if (in_array($currentCurrencyIsoCode, Config::ACCEPTED_FIAT_CURRENCIES)) {
             return true;
         } 
         else {
@@ -190,7 +188,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
     /**
      * Function which shows Joomla notice
      */
-    public function notice($message){
+    public function notice($message): void{
         $app = JFactory::getApplication();
         $app->enqueueMessage($message, 'notice');
     }
@@ -198,7 +196,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin {
      * Function which checks if user is logged in as admin
      * @return bool
      */
-    public function isAdmin(){
+    public function isAdmin(): bool{
         $user = JFactory::getUser();
         $authorize = $user->authorise('core.admin');
         if ($authorize) {

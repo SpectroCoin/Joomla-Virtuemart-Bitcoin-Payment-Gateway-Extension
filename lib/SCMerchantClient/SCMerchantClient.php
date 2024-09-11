@@ -19,8 +19,6 @@ use InvalidArgumentException;
 use Exception;
 use RuntimeException;
 
-use Joomla\CMS\Factory;
-
 defined('_JEXEC') or die('Restricted access');
 
 require_once __DIR__ . '/../vendor/autoload.php';
