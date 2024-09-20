@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use SpectroCoin\SCMerchantClient\Config;
 use SpectroCoin\SCMerchantClient\Exception\ApiError;
+use SpectroCoin\SCMerchantClient\Enum\OrderStatus
 
 /**
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
@@ -75,22 +76,21 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
             $callback = $client->spectrocoinProcessCallback($postData);
 
-            $newStatus = '';
             switch ($callback->getStatus()) {
-                case SpectroCoin_OrderStatusEnum::$New:
-                    $newStatus = $method->new_status;
+                case OrderStatus::New->value:
+                    $order_status = $method->new_status;
                     break;
-                case SpectroCoin_OrderStatusEnum::$Pending:
-                    $newStatus = $method->pending_status;
+                case OrderStatus::Pending->value:
+                    $order_status = $method->pending_status;
                     break;
-                case SpectroCoin_OrderStatusEnum::$Expired:
-                    $newStatus = $method->expired_status;
+                case OrderStatus::Expired->value:
+                    $order_status = $method->expired_status;
                     break;
-                case SpectroCoin_OrderStatusEnum::$Failed:
-                    $newStatus = $method->failed_status;
+                case OrderStatus::Failed->value:
+                    $order_status = $method->failed_status;
                     break;
-                case SpectroCoin_OrderStatusEnum::$Paid:
-                    $newStatus = $method->paid_status;
+                case OrderStatus::Paid->value:
+                    $order_status = $method->paid_status;
                     break;
                 default:
                     JLog::add('Unknown order status: ' . $callback->getStatus(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
