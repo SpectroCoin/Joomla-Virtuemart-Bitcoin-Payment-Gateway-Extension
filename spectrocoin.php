@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use SpectroCoin\SCMerchantClient\Config;
 use SpectroCoin\SCMerchantClient\Exception\ApiError;
-use SpectroCoin\SCMerchantClient\Enum\OrderStatus
+use SpectroCoin\SCMerchantClient\Enum\OrderStatus;
+use SpectroCoin\SCMerchantClient\SCMerchantClient;
+
+use VirtueMartModelOrders;
+use VirtueMartModelCurrency;
 
 /**
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
@@ -12,7 +16,7 @@ use SpectroCoin\SCMerchantClient\Enum\OrderStatus
 
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
-define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');
+define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '2.0.0');
 
 jimport('joomla.log.log');
 
@@ -77,7 +81,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
             $callback = $client->spectrocoinProcessCallback($postData);
 
             switch ($callback->getStatus()) {
-                case OrderStatus::New->value:
+                case OrderStatus::New ->value:
                     $order_status = $method->new_status;
                     break;
                 case OrderStatus::Pending->value:
@@ -96,8 +100,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                     JLog::add('Unknown order status: ' . $callback->getStatus(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
                     exit;
             }
-
-            $order['order_status'] = $newStatus;
+            $order['order_status'] = $order_status;
             $model_order->updateStatusForOneOrder($orderId, $order, true);
             echo '*ok*';
         } catch (Exception $e) {
@@ -110,10 +113,8 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
     protected static function getSCClientByMethod($method)
     {
-        self::includeClassFile('SCMerchantClient', [self::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
+        self::includeClassFile('SCMerchantClient', [Config::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
         return new SCMerchantClient(
-            "https://test.spectrocoin.com/api/public/oauth/token",
-            "https://test.spectrocoin.com/api/public",
             $method->project_id,
             $method->client_id,
             $method->client_secret
@@ -128,11 +129,11 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         if (!$this->selectedThisElement($method->payment_element))
             return false;
 
-        self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
-        self::includeClassFile('VirtueMartModelCurrency', [JPATH_VM_ADMINISTRATOR, 'models', 'currency.php']);
-        self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
-        self::includeClassFile('SpectroCoin_CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderRequest.php']);
-        self::includeClassFile('SpectroCoin_CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderResponse.php']);
+        // self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
+        // self::includeClassFile('VirtueMartModelCurrency', [JPATH_VM_ADMINISTRATOR, 'models', 'currency.php']);
+        // self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
+        // self::includeClassFile('SpectroCoin_CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderRequest.php']);
+        // self::includeClassFile('SpectroCoin_CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderResponse.php']);
 
         VmConfig::loadJLang('com_virtuemart', true);
         VmConfig::loadJLang('com_virtuemart_orders', true);
@@ -152,19 +153,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         $successUrl = (JROUTE::_($uriBaseVirtuemart . '&view=pluginresponse&task=pluginresponsereceived&pm=' . $paymentMethodId));
         $failureUrl = (JROUTE::_($uriBaseVirtuemart . '&view=cart'));
         $locale = explode('-', JFactory::getLanguage()->getTag())[0];
-
-        $request = new SpectroCoin_CreateOrderRequest(
-            $orderId,
-            $description,
-            null,
-            $receiveCurrencyCode,
-            $receiveAmount,
-            $payCurrencyCode,
-            $callbackUrl,
-            $successUrl,
-            $failureUrl,
-            $locale
-        );
 
         $response = $client->spectrocoinCreateOrder($request);
         if ($response instanceof SpectroCoin_CreateOrderResponse) {
