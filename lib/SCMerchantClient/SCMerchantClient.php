@@ -143,7 +143,7 @@ class SCMerchantClient
      * Refreshes the access token
      * 
      * @param int $current_time
-     * @return array|null
+     * @return array|ApiError
      * @throws RequestException
      */
     public function refreshAccessToken(int $current_time)
@@ -196,34 +196,34 @@ class SCMerchantClient
     {
         $db = JFactory::getDbo();
         $query = $db->getQuery(true);
-    
+
         $query->select($db->quoteName('params'))
-              ->from($db->quoteName('#__extensions'))
-              ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin'))
-              ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
-    
+            ->from($db->quoteName('#__extensions'))
+            ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin'))
+            ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
+
         $db->setQuery($query);
         $paramsJson = $db->loadResult();
-    
+
         $params = new JRegistry;
         $params->loadString($paramsJson);
-    
+
         $key = $params->get('spectrocoin_encryption_key', '');
         if (empty($key)) {
             $key = bin2hex(random_bytes(32));
-    
+
             $params->set('spectrocoin_encryption_key', $key);
-            
+
             $query = $db->getQuery(true)
-                        ->update($db->quoteName('#__extensions'))
-                        ->set($db->quoteName('params') . ' = ' . $db->quote((string)$params))
-                        ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin'))
-                        ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
-    
+                ->update($db->quoteName('#__extensions'))
+                ->set($db->quoteName('params') . ' = ' . $db->quote((string) $params))
+                ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
+
             $db->setQuery($query);
             $db->execute();
         }
-    
+
         return $key;
     }
 
@@ -253,6 +253,6 @@ class SCMerchantClient
         if (!$session->isActive()) {
             $session->start();
         }
-        return $session->get('spectrocoin_encrypted_access_token', null); 
+        return $session->get('spectrocoin_encrypted_access_token', null);
     }
 }
