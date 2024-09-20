@@ -95,7 +95,6 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
             $order['order_status'] = $order_status;
             VmModel::getModel('orders')->updateStatusForOneOrder($orderId, $order, true);
 
-            // Response for success
             http_response_code(200); // OK
             echo '*ok*';
         } catch (InvalidArgumentException $e) {
@@ -163,16 +162,18 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
     public function plgVmConfirmedOrder($cart, array $order): ?bool
     {
         $method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id);
+
         if (!$method || !$this->selectedThisElement($method->payment_element)) {
             return false;
         }
+
         VmConfig::loadJLang('com_virtuemart', true);
         VmConfig::loadJLang('com_virtuemart_orders', true);
-        $sc_merchant_client = self::getSCClientByMethod($method);
-        $uriBaseVirtuemart = Uri::root() . 'index.php?option=com_virtuemart';
 
+        $sc_merchant_client = self::getSCClientByMethod($method);
         $orderId = (int) $order['details']['BT']->virtuemart_order_id;
         $orderNumber = $order['details']['BT']->order_number;
+        $uriBaseVirtuemart = Uri::root() . 'index.php?option=com_virtuemart';
 
         $response = $sc_merchant_client->createOrder([
             'orderId' => $orderId,
