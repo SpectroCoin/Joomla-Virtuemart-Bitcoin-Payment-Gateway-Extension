@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-use SpectroCoin\SCMerchantClient\Config;
+use SpectroCoin\SCMerchantClient\Http\OrderCallback;
 use SpectroCoin\SCMerchantClient\Exception\ApiError;
 use SpectroCoin\SCMerchantClient\Enum\OrderStatus;
 use SpectroCoin\SCMerchantClient\SCMerchantClient;
-
 use VirtueMartModelOrders;
-use VirtueMartModelCurrency;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Log\Log;
 
 /**
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
@@ -18,102 +20,125 @@ defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
 define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '2.0.0');
 
-jimport('joomla.log.log');
+Log::addLogger(
+    [
+        'text_file' => 'plg_vmpayment_spectrocoin.log.php',
+        'text_entry_format' => '{DATE} {TIME} {PRIORITY} {MESSAGE}',
+        'text_file_path' => JPATH_ROOT . '/administrator/logs',
+    ],
+    Log::ALL,
+    ['plg_vmpayment_spectrocoin']
+);
 
 if (!class_exists('plgVmPaymentBaseSpectrocoin')) {
     require_once(JPATH_PLUGINS . '/vmpayment/spectrocoin/base_spectrocoin_plugin.php');
 }
 
-JLog::addLogger(
-    array(
-        'text_file' => 'plg_vmpayment_spectrocoin.log.php',
-        'text_entry_format' => '{DATE} {TIME} {PRIORITY} {MESSAGE}',
-        'text_file_path' => JPATH_ROOT . '/administrator/logs'
-    ),
-    JLog::ALL,
-    array('plg_vmpayment_spectrocoin')
-);
-
 class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 {
-
-    public function plgVmOnPaymentNotification()
+    /**
+     * Handles payment notification callback from SpectroCoin with enhanced error handling.
+     *
+     * @return void
+     */
+    public function plgVmOnPaymentNotification(): void
     {
-        JLog::add('plgVmOnPaymentNotification initialized.', JLog::INFO, 'plg_vmpayment_spectrocoin');
-
-        // self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
-        // self::includeClassFile('SpectroCoin_ApiError', [Config::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
+        Log::add('plgVmOnPaymentNotification initialized.', Log::INFO, 'plg_vmpayment_spectrocoin');
 
         try {
-            $input = JFactory::getApplication()->input;
+            $app = Factory::getApplication();
+            $input = $app->input;
             $orderId = $input->getInt('orderId');
+
+            if (!$orderId) {
+                throw new InvalidArgumentException("Invalid order ID in callback.");
+            }
 
             $orderModel = new VirtueMartModelOrders();
             $order = $orderModel->getOrder($orderId);
 
             if (empty($order['details'])) {
-                JLog::add('Order details are empty for order ID ' . $orderId, JLog::ERROR, 'plg_vmpayment_spectrocoin');
-                return;
+                throw new InvalidArgumentException("Order details are empty for order ID $orderId.");
             }
-
-            $model_order = VmModel::getModel('orders');
 
             $method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id);
             if (!$method) {
-                JLog::add('No payment method found for Order ID: ' . $orderId, JLog::ERROR, 'plg_vmpayment_spectrocoin');
-                return null;
+                throw new InvalidArgumentException("No payment method found for Order ID: $orderId.");
             }
 
             if (!$this->selectedThisElement($method->payment_element)) {
-                JLog::add('This payment element is not selected: ' . $method->payment_element, JLog::DEBUG, 'plg_vmpayment_spectrocoin');
-                return false;
+                throw new InvalidArgumentException("This payment element is not selected: {$method->payment_element}");
             }
 
-            $client = self::getSCClientByMethod($method);
+            $order_callback = $this->initCallbackFromPost();
 
-            $expectedKeys = ['userId', 'merchantApiId', 'merchantId', 'apiId', 'orderId', 'payCurrency', 'payAmount', 'receiveCurrency', 'receiveAmount', 'receivedAmount', 'description', 'orderRequestId', 'status', 'sign'];
-            $postData = [];
-            foreach ($expectedKeys as $key) {
-                $value = $input->get($key, '', 'string');
-                $postData[$key] = $value;
+            if (!$callback) {
+                throw new InvalidArgumentException("Invalid callback received.");
             }
 
-            $callback = $client->spectrocoinProcessCallback($postData);
+            $order_status = match ($callback->getStatus()) {
+                OrderStatus::New ->value => $method->new_status,
+                OrderStatus::Pending->value => $method->pending_status,
+                OrderStatus::Expired->value => $method->expired_status,
+                OrderStatus::Failed->value => $method->failed_status,
+                OrderStatus::Paid->value => $method->paid_status,
+                default => throw new InvalidArgumentException('Unknown order status: ' . $callback->getStatus()),
+            };
 
-            switch ($callback->getStatus()) {
-                case OrderStatus::New ->value:
-                    $order_status = $method->new_status;
-                    break;
-                case OrderStatus::Pending->value:
-                    $order_status = $method->pending_status;
-                    break;
-                case OrderStatus::Expired->value:
-                    $order_status = $method->expired_status;
-                    break;
-                case OrderStatus::Failed->value:
-                    $order_status = $method->failed_status;
-                    break;
-                case OrderStatus::Paid->value:
-                    $order_status = $method->paid_status;
-                    break;
-                default:
-                    JLog::add('Unknown order status: ' . $callback->getStatus(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
-                    exit;
-            }
             $order['order_status'] = $order_status;
-            $model_order->updateStatusForOneOrder($orderId, $order, true);
+            VmModel::getModel('orders')->updateStatusForOneOrder($orderId, $order, true);
+
+            // Response for success
+            http_response_code(200); // OK
             echo '*ok*';
+        } catch (InvalidArgumentException $e) {
+            Log::add("Error processing callback: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
+            http_response_code(400); // Bad Request
+            echo "Error processing callback: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+        } catch (ApiError $e) {
+            Log::add("Callback API error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
+            http_response_code(500); // Internal Server Error
+            echo "Callback API error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         } catch (Exception $e) {
-            JLog::add($e->getMessage(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
-            echo $e->getMessage();
+            Log::add("General error processing callback: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
+            http_response_code(500); // Internal Server Error
+            echo "General error processing callback: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         }
 
-        JFactory::getApplication()->close();
+        Factory::getApplication()->close();
     }
 
-    protected static function getSCClientByMethod($method)
+    /**
+     * Initializes the callback data from POST request.
+     * 
+     * @return OrderCallback|null Returns an OrderCallback object if data is valid, null otherwise.
+     */
+    private function initCallbackFromPost(): ?OrderCallback
     {
-        self::includeClassFile('SCMerchantClient', [Config::SCPLUGIN_CLIENT_PATH, 'SCMerchantClient.php']);
+        $expected_keys = ['userId', 'merchantApiId', 'merchantId', 'apiId', 'orderId', 'payCurrency', 'payAmount', 'receiveCurrency', 'receiveAmount', 'receivedAmount', 'description', 'orderRequestId', 'status', 'sign'];
+
+        $callback_data = [];
+        foreach ($expected_keys as $key) {
+            if (isset($_POST[$key])) {
+                $callback_data[$key] = $_POST[$key];
+            }
+        }
+
+        if (empty($callback_data)) {
+            $this->wc_logger->log('error', "No data received in callback");
+            return null;
+        }
+        return new OrderCallback($callback_data);
+    }
+
+    /**
+     * Creates and returns an SCMerchantClient instance using the payment method data.
+     *
+     * @param object $method Payment method object
+     * @return SCMerchantClient
+     */
+    protected static function getSCClientByMethod(object $method): SCMerchantClient
+    {
         return new SCMerchantClient(
             $method->project_id,
             $method->client_id,
@@ -121,60 +146,48 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         );
     }
 
-    public function plgVmConfirmedOrder($cart, $order)
+    /**
+     * Processes the confirmed order and initiates the payment request to SpectroCoin.
+     *
+     * @param VirtueMartCart $cart
+     * @param array $order
+     * @return bool|null
+     */
+    public function plgVmConfirmedOrder($cart, array $order): ?bool
     {
         $method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id);
-        if (!$method)
-            return null;
-        if (!$this->selectedThisElement($method->payment_element))
-            return false;
-
-        // self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
-        // self::includeClassFile('VirtueMartModelCurrency', [JPATH_VM_ADMINISTRATOR, 'models', 'currency.php']);
-        // self::includeClassFile('SpectroCoin_ApiError', [self::SCPLUGIN_CLIENT_PATH, 'data', 'SpectroCoin_ApiError.php']);
-        // self::includeClassFile('SpectroCoin_CreateOrderRequest', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderRequest.php']);
-        // self::includeClassFile('SpectroCoin_CreateOrderResponse', [self::SCPLUGIN_CLIENT_PATH, 'messages', 'SpectroCoin_CreateOrderResponse.php']);
-
-        VmConfig::loadJLang('com_virtuemart', true);
-        VmConfig::loadJLang('com_virtuemart_orders', true);
-
-        $client = self::getSCClientByMethod($method);
-
-        $uriBaseVirtuemart = JURI::root() . 'index.php?option=com_virtuemart';
-
-        $orderId = $order['details']['BT']->virtuemart_order_id;
-        $paymentMethodId = $order['details']['BT']->virtuemart_paymentmethod_id;
-        $orderNumber = $order['details']['BT']->order_number;
-        $receiveCurrencyCode = shopFunctions::getCurrencyByID($method->currency_id, 'currency_code_3');
-        $payCurrencyCode = 'BTC';
-        $receiveAmount = round($order['details']['BT']->order_total, 2);
-        $description = "Order $orderNumber at " . basename(JUri::base());
-        $callbackUrl = (JROUTE::_($uriBaseVirtuemart . '&view=pluginresponse&task=pluginnotification&tmpl=component'));
-        $successUrl = (JROUTE::_($uriBaseVirtuemart . '&view=pluginresponse&task=pluginresponsereceived&pm=' . $paymentMethodId));
-        $failureUrl = (JROUTE::_($uriBaseVirtuemart . '&view=cart'));
-        $locale = explode('-', JFactory::getLanguage()->getTag())[0];
-
-        $response = $client->spectrocoinCreateOrder($request);
-        if ($response instanceof SpectroCoin_CreateOrderResponse) {
-            $model = VmModel::getModel('orders');
-            $order['order_status'] = 'P';
-            $model->updateStatusForOneOrder($orderId, $order);
-
-            $cart->emptyCart();
-
-            JFactory::getApplication()->redirect($response->getRedirectUrl());
-            exit;
-        } elseif ($response instanceof SpectroCoin_ApiError) {
-            JLog::add('Error occurred. Code: ' . $response->getCode() . ' ' . $response->getMessage(), JLog::ERROR, 'plg_vmpayment_spectrocoin');
-            JFactory::getApplication()->enqueueMessage("Error occurred. Code: " . $response->getCode() . " " . $response->getMessage());
-            return false;
-        } else {
-            JLog::add('Unknown SpectroCoin error.', JLog::ERROR, 'plg_vmpayment_spectrocoin');
-            JFactory::getApplication()->enqueueMessage("Unknown SpectroCoin error.");
+        if (!$method || !$this->selectedThisElement($method->payment_element)) {
             return false;
         }
+        VmConfig::loadJLang('com_virtuemart', true);
+        VmConfig::loadJLang('com_virtuemart_orders', true);
+        $sc_merchant_client = self::getSCClientByMethod($method);
+        $uriBaseVirtuemart = Uri::root() . 'index.php?option=com_virtuemart';
+        $orderNumber = $order['details']['BT']->order_number;
 
-        return true;
+        $response = $sc_merchant_client->createOrder([
+            'orderId' => (int) $order['details']['BT']->virtuemart_order_id,
+            'description' => "Order $orderNumber at " . basename(Uri::base()),
+            'receiveAmount' => round((float) $order['details']['BT']->order_total, 2),
+            'receiveCurrencyCode' => shopFunctions::getCurrencyByID($method->currency_id, 'currency_code_3'),
+            'callbackUrl' => Route::_($uriBaseVirtuemart . '&view=pluginresponse&task=pluginnotification&tmpl=component'),
+            'successUrl' => Route::_($uriBaseVirtuemart . '&view=pluginresponse&task=pluginresponsereceived&pm=' . $order['details']['BT']->virtuemart_paymentmethod_id),
+            'failureUrl' => Route::_($uriBaseVirtuemart . '&view=cart')
+        ]);
+
+        if ($response instanceof CreateOrderResponse) {
+            VmModel::getModel('orders')->updateStatusForOneOrder($orderId, ['order_status' => 'P']);
+            $cart->emptyCart();
+            Factory::getApplication()->redirect($response->getRedirectUrl());
+            return true;
+        } else if ($response instanceof ApiError) {
+            Log::add('Error occurred. Code: ' . $response->getCode() . ' ' . $response->getMessage(), Log::ERROR, 'plg_vmpayment_spectrocoin');
+            Factory::getApplication()->enqueueMessage('Error occurred. Code: ' . $response->getCode() . ' ' . $response->getMessage());
+        } else {
+            Log::add('Unknown SpectroCoin error.', Log::ERROR, 'plg_vmpayment_spectrocoin');
+            Factory::getApplication()->enqueueMessage('Unknown SpectroCoin error.');
+        }
+
+        return false;
     }
-
 }
