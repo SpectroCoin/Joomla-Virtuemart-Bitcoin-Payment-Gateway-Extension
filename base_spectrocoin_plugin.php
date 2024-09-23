@@ -251,10 +251,10 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
      * Displays the payment method on the frontend.
      * @param $cart
      * @param int $selected
-     * @param string $htmlIn
+     * @param $htmlIn
      * @return string
      */
-    public function plgVmDisplayListFEPayment($cart, int $selected = 0, string &$htmlIn): string
+    public function plgVmDisplayListFEPayment($cart, int $selected = 0, $htmlIn): string
     {
         if (!$this->checkCartCurrency()) {
             return '';
