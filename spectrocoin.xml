@@ -40,7 +40,6 @@
         <field name="paid_status" type="vmorderstate" scope="com_virtuemart" default="C" label="VMPAYMENT_SPECTROCOIN_PAID_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_PAID_STATUS_DESCRIPTION" />
         <field name="failed_status" type="vmorderstate" scope="com_virtuemart" default="X" label="VMPAYMENT_SPECTROCOIN_FAILED_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_FAILED_STATUS_DESCRIPTION" />
         <field name="expired_status" type="vmorderstate" scope="com_virtuemart" default="X" label="VMPAYMENT_SPECTROCOIN_EXPIRED_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_EXPIRED_STATUS_DESCRIPTION" />
-        <field name="test_status" type="vmorderstate" scope="com_virtuemart" default="C" label="VMPAYMENT_SPECTROCOIN_TEST_STATUS_LABEL" description="VMPAYMENT_SPECTROCOIN_TEST_STATUS_DESCRIPTION" />
       </fieldset>
     </fields>
   </config>

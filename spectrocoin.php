@@ -83,18 +83,28 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                 throw new InvalidArgumentException("Invalid callback received.");
             }
 
-            $order_status = match ($order_callback->getStatus()) {
-                OrderStatus::New ->value => $method->new_status,
-                OrderStatus::Pending->value => $method->pending_status,
-                OrderStatus::Expired->value => $method->expired_status,
-                OrderStatus::Failed->value => $method->failed_status,
-                OrderStatus::Paid->value => $method->paid_status,
-                default => throw new InvalidArgumentException('Unknown order status: ' . $order_callback->getStatus()),
-            };
-
+            switch ($order_callback->getStatus()) {
+                case OrderStatus::New ->value:
+                    $order_status = $method->new_status;
+                    break;
+                case OrderStatus::Pending->value:
+                    $order_status = $method->pending_status;
+                    break;
+                case OrderStatus::Paid->value:
+                    $order_status = $method->paid_status;
+                    break;
+                case OrderStatus::Failed->value:
+                    $order_status = $method->failed_status;
+                    break;
+                case OrderStatus::Expired->value:
+                    $order_status = $method->expired_status;
+                    break;
+                default:
+                    throw new InvalidArgumentException('Unknown order status: ' . $order_callback->getStatus());
+                    exit;
+            }
             $order['order_status'] = $order_status;
             VmModel::getModel('orders')->updateStatusForOneOrder($orderId, $order, true);
-
             http_response_code(200); // OK
             echo '*ok*';
         } catch (InvalidArgumentException $e) {

@@ -1,32 +1,30 @@
 <?php
 
-declare(strict_types=1);
-
 use SpectroCoin\SCMerchantClient\Config;
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 /**
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
  */
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
-
 define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');
 
 if (!class_exists('vmPSPlugin')) {
-    require implode(DS, [JPATH_VM_PLUGINS, 'vmpsplugin.php']);
+    require(implode(DS, [JPATH_VM_PLUGINS, 'vmpsplugin.php']));
 }
 if (!class_exists('VmConfig')) {
-    require implode(DS, [JPATH_ADMINISTRATOR, 'components', 'com_virtuemart', 'helpers', 'config.php']);
+    require(implode(DS, [JPATH_ADMINISTRATOR, 'components', 'com_virtuemart', 'helpers', 'config.php']));
 }
 if (!class_exists('ShopFunctions')) {
-    require implode(DS, [JPATH_VM_ADMINISTRATOR, 'helpers', 'shopfunctions.php']);
+    require(implode(DS, [JPATH_VM_ADMINISTRATOR, 'helpers', 'shopfunctions.php']));
 }
-
-require_once __DIR__ . '/vendor/autoload.php';
 
 abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 {
-    public function __construct(&$subject, array $config)
+
+    function __construct(&$subject, $config)
     {
         parent::__construct($subject, $config);
 
@@ -37,41 +35,24 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
         if ($this->isAdmin()) {
             $shopsLink = JRoute::_('index.php?option=com_virtuemart&view=user&task=editshop');
-            $notice = '<b>SpectroCoin:</b> Make sure you select the same currency in your SpectroCoin payment settings as in your ' .
-                '<a target="_blank" href="' . $shopsLink . '">shop</a>' . ' settings';
+            $notice = '<b>SpectroCoin:</b> Make sure you select the same currency in your SpectroCoin payment settings as in your ' . '<a target="_blank" href="' . $shopsLink . '">shop</a>' . ' settings';
             $this->notice($notice);
         }
     }
 
-    /**
-     * Includes a class file if not already loaded.
-     * @param string $className
-     * @param array $segments
-     * @return void
-     */
-    public static function includeClassFile(string $className, array $segments): void
+    public static function includeClassFile($className, array $segments)
     {
         if (!class_exists($className)) {
             require_once implode(DS, $segments);
         }
     }
-
-    /**
-     * Creates the SQL table for payment method.
-     * @return string
-     */
-    public function getVmPluginCreateTableSQL(): string
+    public function getVmPluginCreateTableSQL()
     {
         return $this->createTableSQL('Payment SpectroCoin Table');
     }
-
-    /**
-     * Defines the SQL fields for the plugin table.
-     * @return array
-     */
-    public function getTableSQLFields(): array
+    public function getTableSQLFields()
     {
-        return [
+        return array(
             'id' => 'int(1) UNSIGNED NOT NULL AUTO_INCREMENT',
             'virtuemart_order_id' => 'int(1) UNSIGNED',
             'order_number' => 'char(64)',
@@ -80,168 +61,94 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
             'payment_order_total' => 'decimal(15,5) NOT NULL DEFAULT \'0.00000\'',
             'payment_currency' => 'char(3)',
             'logo' => 'varchar(5000)'
-        ];
+        );
     }
 
-    /**
-     * Returns the cost for the payment method.
-     * @param $cart
-     * @param object $method
-     * @param array $cart_prices
-     * @return float
-     */
-    public function getCosts($cart, $method, $cart_prices): float
+    public function getCosts(VirtueMartCart $cart, $method, $cart_prices)
     {
-        return 0.0;
+        return 0;
     }
 
-    /**
-     * Checks if the payment method conditions are met.
-     * @param $cart
-     * @param object $method
-     * @param array $cart_prices
-     * @return bool
-     */
-    protected function checkConditions($cart, $method, $cart_prices): bool
+    protected function checkConditions($cart, $method, $cart_prices)
     {
         return true;
     }
 
-    /**
-     * Handles plugin installation for VirtueMart.
-     * @param int $jplugin_id
-     * @return bool
-     */
-    public function plgVmOnStoreInstallPaymentPluginTable(int $jplugin_id): bool
+    public function plgVmOnStoreInstallPaymentPluginTable($jplugin_id)
     {
         return $this->onStoreInstallPluginTable($jplugin_id);
     }
 
-    /**
-     * Calculates the price for the selected payment method.
-     * @param $cart
-     * @param array $cart_prices
-     * @param string $cart_prices_name
-     * @return bool
-     */
-    public function plgVmonSelectedCalculatePricePayment($cart, array &$cart_prices, string &$cart_prices_name): bool
+    public function plgVmonSelectedCalculatePricePayment(VirtueMartCart $cart, array &$cart_prices, &$cart_prices_name)
     {
         return $this->onSelectedCalculatePrice($cart, $cart_prices, $cart_prices_name);
     }
 
-    /**
-     * Returns the currency used for the payment method.
-     * @param int $virtuemart_paymentmethod_id
-     * @param int|null $paymentCurrencyId
-     * @return void
-     */
-    public function plgVmgetPaymentCurrency(int $virtuemart_paymentmethod_id, ?int &$paymentCurrencyId): void
+    public function plgVmgetPaymentCurrency($virtuemart_paymentmethod_id, &$paymentCurrencyId)
     {
         if (!($method = $this->getVmPluginMethod($virtuemart_paymentmethod_id))) {
-            return;
+            return null;
         }
         if (!$this->selectedThisElement($method->payment_element)) {
-            return;
+            return false;
         }
         $this->getPaymentCurrency($method);
         $paymentCurrencyId = $method->payment_currency;
+        return;
     }
 
-    /**
-     * Automatically selects the payment method based on conditions.
-     * @param $cart
-     * @param array $cart_prices
-     * @param int $paymentCounter
-     * @return bool
-     */
-    public function plgVmOnCheckAutomaticSelectedPayment($cart, array $cart_prices = [], int &$paymentCounter): bool
+    public function plgVmOnCheckAutomaticSelectedPayment(VirtueMartCart $cart, array $cart_prices = array(), &$paymentCounter)
     {
         return $this->onCheckAutomaticSelected($cart, $cart_prices, $paymentCounter);
     }
 
-    /**
-     * Shows the payment method on the order in frontend.
-     * @param int $virtuemart_order_id
-     * @param int $virtuemart_paymentmethod_id
-     * @param string $payment_name
-     * @return void
-     */
-    public function plgVmOnShowOrderFEPayment(int $virtuemart_order_id, int $virtuemart_paymentmethod_id, string &$payment_name): void
+    public function plgVmOnShowOrderFEPayment($virtuemart_order_id, $virtuemart_paymentmethod_id, &$payment_name)
     {
         $this->onShowOrderFE($virtuemart_order_id, $virtuemart_paymentmethod_id, $payment_name);
     }
 
-    /**
-     * Prints the payment method on the order in backend.
-     * @param string $order_number
-     * @param int $method_id
-     * @return bool
-     */
-    public function plgVmonShowOrderPrintPayment(string $order_number, int $method_id): bool
+    public function plgVmonShowOrderPrintPayment($order_number, $method_id)
     {
         return $this->onShowOrderPrint($order_number, $method_id);
     }
 
-    /**
-     * Declares the plugin parameters for VirtueMart.
-     * @param string $name
-     * @param int $id
-     * @param $data
-     * @return bool
-     */
-    public function plgVmDeclarePluginParamsPayment(string $name, int $id, $data): bool
+    public function plgVmDeclarePluginParamsPayment($name, $id, &$data)
     {
         return $this->declarePluginParams('payment', $name, $id, $data);
     }
 
-    /**
-     * Declares the plugin parameters for VirtueMart 3.
-     * @param $data
-     * @return bool
-     */
-    public function plgVmDeclarePluginParamsPaymentVM3($data): bool
+    public function plgVmDeclarePluginParamsPaymentVM3(&$data)
     {
         return $this->declarePluginParams('payment', $data);
     }
 
-    /**
-     * Sets the plugin parameters on the table.
-     * @param string $name
-     * @param int $id
-     * @param array $table
-     * @return bool
-     */
-    public function plgVmSetOnTablePluginParamsPayment(string $name, int $id, $table): bool
+    public function plgVmSetOnTablePluginParamsPayment($name, $id, &$table)
     {
         return $this->setOnTablePluginParams($name, $id, $table);
     }
 
-    /**
-     * Handles the payment response.
-     * @param string $html
-     * @return bool
-     */
-    public function plgVmOnPaymentResponseReceived(string &$html): bool
+    public function plgVmOnPaymentResponseReceived(&$html)
     {
+        // Include some needed classes
         self::includeClassFile('VirtueMartCart', [JPATH_VM_SITE, 'helpers', 'cart.php']);
         self::includeClassFile('shopFunctionsF', [JPATH_VM_SITE, 'helpers', 'shopfunctionsf.php']);
-        self::includeClassFile('VirtueMartModelOrders', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
+        self::includeClassFile('shopFunctionsF', [JPATH_VM_ADMINISTRATOR, 'models', 'orders.php']);
 
-        $virtuemart_paymentmethod_id = JFactory::getApplication()->input->getInt('pm', 0);
-        $order_number = JFactory::getApplication()->input->getString('on', 0);
+        $virtuemart_paymentmethod_id = JFactory::getApplication()->input->get->get('pm', 0);
+        $order_number = JFactory::getApplication()->input->get->get('on', 0);
         $vendorId = 0;
 
         if (!($method = $this->getVmPluginMethod($virtuemart_paymentmethod_id))) {
-            return false;
+            return null;
         }
         if (!$this->selectedThisElement($method->payment_element)) {
-            return false;
+            return null;
         }
         if (!($virtuemart_order_id = VirtueMartModelOrders::getOrderIdByOrderNumber($order_number))) {
-            return false;
+            return null;
         }
         if (!($paymentTable = $this->getDataByOrderId($virtuemart_order_id))) {
-            return false;
+            return '';
         }
 
         $payment_name = $this->renderPluginName($method);
@@ -249,14 +156,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
         return true;
     }
 
-    /**
-     * Displays the payment method on the frontend.
-     * @param $cart
-     * @param int $selected
-     * @param $htmlIn
-     * @return mixed
-     */
-    public function plgVmDisplayListFEPayment($cart, int $selected = 0, $htmlIn)
+    public function plgVmDisplayListFEPayment(VirtueMartCart $cart, $selected = 0, &$htmlIn)
     {
         if (!$this->checkCartCurrency()) {
             return '';
@@ -264,22 +164,17 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
         $session = JFactory::getSession();
         $errors = $session->get('errorMessages', 0, 'vm');
-
-        // Check if $errors is a string before calling unserialize
-        if (is_string($errors) && $errors !== "") {
+        if ($errors != "") {
             $errors = unserialize($errors);
+            $session->set('errorMessages', "", 'vm');
         } else {
-            $errors = [];
+            $errors = array();
         }
-
-        // Clear the session error messages after handling
-        $session->set('errorMessages', "", 'vm');
-
         return $this->displayListFE($cart, $selected, $htmlIn);
     }
 
     /**
-     * Verifies if the cart currency is supported by SpectroCoin.
+     * Function which checks if the currency of the cart is supported by SpectroCoin
      * @return bool
      */
     private function checkCartCurrency(): bool
@@ -293,36 +188,40 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
         return in_array($currentCurrencyIsoCode, Config::ACCEPTED_FIAT_CURRENCIES);
     }
-
     /**
-     * Returns the current GMT timestamp.
+     * Function which GMT timestamp
      * @return string
      */
-    public function getGMTTimeStamp(): string
+    public function getGMTTimeStamp()
     {
         $tz_minutes = date('Z') / 60;
-        $tz_minutes = $tz_minutes >= 0 ? '+' . sprintf("%03d", $tz_minutes) : (string) $tz_minutes;
-        return date('YdmHis000000') . $tz_minutes;
+        if ($tz_minutes >= 0) {
+            $tz_minutes = '+' . sprintf("%03d", $tz_minutes);
+        }
+        $stamp = date('YdmHis000000') . $tz_minutes;
+        return $stamp;
     }
-
     /**
-     * Displays a Joomla notice message.
-     * @param string $message
-     * @return void
+     * Function which shows Joomla notice
      */
-    public function notice(string $message): void
+    public function notice($message)
     {
         $app = JFactory::getApplication();
         $app->enqueueMessage($message, 'notice');
     }
-
     /**
-     * Checks if the current user has admin access.
+     * Function which checks if user is logged in as admin
      * @return bool
      */
-    public function isAdmin(): bool
+    public function isAdmin()
     {
         $user = JFactory::getUser();
-        return $user->authorise('core.admin');
+        $authorize = $user->authorise('core.admin');
+        if ($authorize) {
+            return true;
+        } else {
+            return false;
+        }
     }
+
 }

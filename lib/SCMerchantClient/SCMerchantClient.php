@@ -19,9 +19,12 @@ use InvalidArgumentException;
 use Exception;
 use RuntimeException;
 
+use Joomla\CMS\Factory;
+use Joomla\Registry\Registry;
+
 defined('_JEXEC') or die('Restricted access');
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 class SCMerchantClient
 {
@@ -194,7 +197,7 @@ class SCMerchantClient
      */
     private function InitializeEncryptionKey(): string
     {
-        $db = JFactory::getDbo();
+        $db = Factory::getDbo();
         $query = $db->getQuery(true);
 
         $query->select($db->quoteName('params'))
@@ -205,7 +208,7 @@ class SCMerchantClient
         $db->setQuery($query);
         $paramsJson = $db->loadResult();
 
-        $params = new JRegistry;
+        $params = new Registry;
         $params->loadString($paramsJson);
 
         $key = $params->get('spectrocoin_encryption_key', '');
@@ -235,7 +238,7 @@ class SCMerchantClient
      */
     private function storeEncryptedData($encrypted_access_token_data): void
     {
-        $session = JFactory::getSession();
+        $session = Factory::getSession();
         if (!$session->isActive()) {
             $session->start();
         }
@@ -249,7 +252,7 @@ class SCMerchantClient
      */
     private function retrieveEncryptedData(): ?string
     {
-        $session = JFactory::getSession();
+        $session = Factory::getSession();
         if (!$session->isActive()) {
             $session->start();
         }

@@ -6,7 +6,8 @@ namespace SpectroCoin\SCMerchantClient\Enum;
 
 defined('_JEXEC') or die('Restricted access');
 
-enum OrderStatus: int {
+enum OrderStatus: int
+{
 	case New = 1;
 	case Pending = 2;
 	case Paid = 3;
