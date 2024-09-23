@@ -254,9 +254,9 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
      * @param $cart
      * @param int $selected
      * @param $htmlIn
-     * @return string
+     * @return mixed
      */
-    public function plgVmDisplayListFEPayment($cart, int $selected = 0, $htmlIn): string
+    public function plgVmDisplayListFEPayment($cart, int $selected = 0, $htmlIn)
     {
         if (!$this->checkCartCurrency()) {
             return '';
