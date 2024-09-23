@@ -22,6 +22,8 @@ if (!class_exists('ShopFunctions')) {
     require implode(DS, [JPATH_VM_ADMINISTRATOR, 'helpers', 'shopfunctions.php']);
 }
 
+require_once __DIR__ . '/vendor/autoload.php';
+
 abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 {
     public function __construct(&$subject, array $config)
@@ -262,12 +264,17 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
         $session = JFactory::getSession();
         $errors = $session->get('errorMessages', 0, 'vm');
-        if ($errors != "") {
+
+        // Check if $errors is a string before calling unserialize
+        if (is_string($errors) && $errors !== "") {
             $errors = unserialize($errors);
-            $session->set('errorMessages', "", 'vm');
         } else {
             $errors = [];
         }
+
+        // Clear the session error messages after handling
+        $session->set('errorMessages', "", 'vm');
+
         return $this->displayListFE($cart, $selected, $htmlIn);
     }
 
