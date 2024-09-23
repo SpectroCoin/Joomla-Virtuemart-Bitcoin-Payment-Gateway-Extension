@@ -83,19 +83,19 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
     /**
      * Returns the cost for the payment method.
-     * @param VirtueMartCart $cart
+     * @param $cart
      * @param object $method
      * @param array $cart_prices
      * @return float
      */
-    public function getCosts(VirtueMartCart $cart, $method, $cart_prices): float
+    public function getCosts($cart, $method, $cart_prices): float
     {
         return 0.0;
     }
 
     /**
      * Checks if the payment method conditions are met.
-     * @param VirtueMartCart $cart
+     * @param $cart
      * @param object $method
      * @param array $cart_prices
      * @return bool
@@ -117,12 +117,12 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
     /**
      * Calculates the price for the selected payment method.
-     * @param VirtueMartCart $cart
+     * @param $cart
      * @param array $cart_prices
      * @param string $cart_prices_name
      * @return bool
      */
-    public function plgVmonSelectedCalculatePricePayment(VirtueMartCart $cart, array &$cart_prices, string &$cart_prices_name): bool
+    public function plgVmonSelectedCalculatePricePayment($cart, array &$cart_prices, string &$cart_prices_name): bool
     {
         return $this->onSelectedCalculatePrice($cart, $cart_prices, $cart_prices_name);
     }
@@ -147,12 +147,12 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
     /**
      * Automatically selects the payment method based on conditions.
-     * @param VirtueMartCart $cart
+     * @param $cart
      * @param array $cart_prices
      * @param int $paymentCounter
      * @return bool
      */
-    public function plgVmOnCheckAutomaticSelectedPayment(VirtueMartCart $cart, array $cart_prices = [], int &$paymentCounter): bool
+    public function plgVmOnCheckAutomaticSelectedPayment($cart, array $cart_prices = [], int &$paymentCounter): bool
     {
         return $this->onCheckAutomaticSelected($cart, $cart_prices, $paymentCounter);
     }
@@ -184,20 +184,20 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
      * Declares the plugin parameters for VirtueMart.
      * @param string $name
      * @param int $id
-     * @param array $data
+     * @param $data
      * @return bool
      */
-    public function plgVmDeclarePluginParamsPayment(string $name, int $id, array &$data): bool
+    public function plgVmDeclarePluginParamsPayment(string $name, int $id, $data): bool
     {
         return $this->declarePluginParams('payment', $name, $id, $data);
     }
 
     /**
      * Declares the plugin parameters for VirtueMart 3.
-     * @param array $data
+     * @param $data
      * @return bool
      */
-    public function plgVmDeclarePluginParamsPaymentVM3(array &$data): bool
+    public function plgVmDeclarePluginParamsPaymentVM3($data): bool
     {
         return $this->declarePluginParams('payment', $data);
     }
@@ -209,7 +209,7 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
      * @param array $table
      * @return bool
      */
-    public function plgVmSetOnTablePluginParamsPayment(string $name, int $id, array &$table): bool
+    public function plgVmSetOnTablePluginParamsPayment(string $name, int $id, $table): bool
     {
         return $this->setOnTablePluginParams($name, $id, $table);
     }
@@ -249,12 +249,12 @@ abstract class plgVmPaymentBaseSpectrocoin extends vmPSPlugin
 
     /**
      * Displays the payment method on the frontend.
-     * @param VirtueMartCart $cart
+     * @param $cart
      * @param int $selected
      * @param string $htmlIn
      * @return string
      */
-    public function plgVmDisplayListFEPayment(VirtueMartCart $cart, int $selected = 0, string &$htmlIn): string
+    public function plgVmDisplayListFEPayment($cart, int $selected = 0, string &$htmlIn): string
     {
         if (!$this->checkCartCurrency()) {
             return '';
