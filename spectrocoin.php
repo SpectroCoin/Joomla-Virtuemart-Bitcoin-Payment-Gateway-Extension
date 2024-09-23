@@ -101,7 +101,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                     break;
                 default:
                     throw new InvalidArgumentException('Unknown order status: ' . $order_callback->getStatus());
-                    exit;
+                    break;
             }
             $order['order_status'] = $order_status;
             VmModel::getModel('orders')->updateStatusForOneOrder($orderId, $order, true);
