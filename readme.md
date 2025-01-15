@@ -67,6 +67,8 @@ Order callbacks in the SpectroCoin plugin allow your WordPress site to automatic
 
 ### 2.0.0 MAJOR ():
 
+This major update introduces several improvements, including enhanced security, updated coding standards, and a streamlined integration process. **Important:** Users must generate new API credentials (Client ID and Client Secret) in their SpectroCoin account settings to continue using the plugin. The previous private key and merchant ID functionality have been deprecated.
+
 _Updated_ Order creation API endpoint has been updated for enhanced performance and security.
 
 _Removed_ Private key functionality and merchant ID requirement have been removed to streamline integration.
@@ -80,6 +82,18 @@ _Migrated_ Since HTTPful is no longer maintained, we migrated to GuzzleHttp. In 
 _Reworked_ SpectroCoin callback handling was reworked. Added appropriate callback routing for success, fail and callback.
 
 _Added_ plg_vmpayment_spectrocoin.log.php file for logging errors from spectrocoin.php
+
+_Updated_ Class and some method names have been updated based on PSR-12 standards.
+
+_Updated_ Composer class autoloading has been implemented.
+
+_Added_ _Config.php_ file has been added to store plugin configuration.
+
+_Added_ _Utils.php_ file has been added to store utility functions.
+
+_Added_ _GenericError.php_ file has been added to handle generic errors.
+
+_Added_ Strict types have been added to all classes.
 
 ### 1.0.0 MAJOR (09/28/2023):
 
