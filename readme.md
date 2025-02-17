@@ -47,7 +47,7 @@ $this->callbackUrl = "https://localhost.com/";,
 $this->successUrl = "https://localhost.com/";,
 $this->failureUrl = "https://localhost.com/";
 ```
-Don't forget to change it back when migrating website to public.
+Don't forget to change it back when migrating website to public. 
 
 ## Testing Callbacks
 
