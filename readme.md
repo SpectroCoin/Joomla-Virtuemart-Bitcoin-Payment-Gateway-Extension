@@ -65,7 +65,7 @@ Order callbacks in the SpectroCoin plugin allow your WordPress site to automatic
 
 ## Changelog
 
-### 2.0.0 MAJOR ():
+### 2.0.0 MAJOR (02/17/2025):
 
 This major update introduces several improvements, including enhanced security, updated coding standards, and a streamlined integration process. **Important:** Users must generate new API credentials (Client ID and Client Secret) in their SpectroCoin account settings to continue using the plugin. The previous private key and merchant ID functionality have been deprecated.
 
