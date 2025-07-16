@@ -15,6 +15,8 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Registry\Registry;
 
 use Exception;
 use InvalidArgumentException;
@@ -51,53 +53,62 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
      */
     public function plgVmOnPaymentNotification(): void
     {
-        Log::add('plgVmOnPaymentNotification initialized.', Log::INFO, 'plg_vmpayment_spectrocoin');
-
+        $app   = Factory::getApplication();
+        $input = $app->input;
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         try {
-            $app = Factory::getApplication();
-            $input = $app->input;
-            $orderId = $input->getInt('orderId');
+            if (stripos($contentType, 'application/json') !== false) {
+                $order_callback = $this->initCallbackFromJson();
+                if (! $order_callback) {
+                    throw new InvalidArgumentException('Invalid JSON callback payload');
+                }
 
-            if (!$orderId) {
-                throw new InvalidArgumentException("Invalid order ID in callback.");
+                $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
+                $params = new Registry($plugin->params);
+
+                $method = (object) [
+                    'project_id'    => $params->get('project_id'),
+                    'client_id'     => $params->get('client_id'),
+                    'client_secret' => $params->get('client_secret'),
+                ];
+
+                $sc_merchant_client = self::getSCClientByMethod($method);
+                $order_data = $sc_merchant_client->getOrderById($order_callback->getUuid());
+                if (!isset($order_data['orderId'], $order_data['status'])) {
+                    throw new InvalidArgumentException('Malformed order data from API');
+                }
+
+                $order_id   = (int) explode('-', $order_data['orderId'], 2)[0];
+                $raw_status = $order_data['status'];
+            } else {
+                $order_callback = $this->initCallbackFromPost();
+                if (! $order_callback) {
+                    throw new InvalidArgumentException('Invalid form callback payload');
+                }
+
+                $order_id   = $input->getInt('orderId');
+                if (! $order_id) {
+                    throw new InvalidArgumentException('Missing orderId in POST');
+                }
+                $raw_status = $order_callback->getStatus();
             }
 
-            $orderModel = new VirtueMartModelOrders();
-            $order = $orderModel->getOrder($orderId);
+            $status_enum = OrderStatus::normalize($raw_status);
 
-            if (empty($order['details'])) {
-                throw new InvalidArgumentException("Order details are empty for order ID $orderId.");
-            }
-
-            $method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id);
-            if (!$method) {
-                throw new InvalidArgumentException("No payment method found for Order ID: $orderId.");
-            }
-
-            if (!$this->selectedThisElement($method->payment_element)) {
-                throw new InvalidArgumentException("This payment element is not selected: {$method->payment_element}");
-            }
-
-            $order_callback = $this->initCallbackFromPost();
-
-            if (!$order_callback) {
-                throw new InvalidArgumentException("Invalid callback received.");
-            }
-
-            switch ($order_callback->getStatus()) {
-                case OrderStatus::New->value:
+            switch ($status_enum) {
+                case OrderStatus::NEW:
                     $order_status = $method->new_status;
                     break;
-                case OrderStatus::Pending->value:
+                case OrderStatus::PENDING:
                     $order_status = $method->pending_status;
                     break;
-                case OrderStatus::Paid->value:
+                case OrderStatus::PAID:
                     $order_status = $method->paid_status;
                     break;
-                case OrderStatus::Failed->value:
+                case OrderStatus::FAILED:
                     $order_status = $method->failed_status;
                     break;
-                case OrderStatus::Expired->value:
+                case OrderStatus::EXPIRED:
                     $order_status = $method->expired_status;
                     break;
                 default:
@@ -105,7 +116,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                     break;
             }
             $order['order_status'] = $order_status;
-            VmModel::getModel('orders')->updateStatusForOneOrder($orderId, $order, true);
+            VmModel::getModel('orders')->updateStatusForOneOrder($order_id, $order, true);
             http_response_code(200); // OK
             echo '*ok*';
         } catch (InvalidArgumentException $e) {
