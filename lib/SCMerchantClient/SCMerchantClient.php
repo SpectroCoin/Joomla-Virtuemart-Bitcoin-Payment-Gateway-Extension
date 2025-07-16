@@ -169,7 +169,6 @@ class SCMerchantClient
             $encrypted_access_token_data = Utils::EncryptAuthData(json_encode($access_token_data), $this->encryption_key);
             $this->storeEncryptedData($encrypted_access_token_data);
             return $access_token_data;
-
         } catch (RequestException $e) {
             return new ApiError($e->getMessage(), $e->getCode());
         }
@@ -257,5 +256,39 @@ class SCMerchantClient
             $session->start();
         }
         return $session->get('spectrocoin_encrypted_access_token', null);
+    }
+
+    /**
+     * Uses unique order's UUID and access token data to request GET /merchants/orders/{$id} and retrieve the data of the order in array format.
+     * @param string $order_id
+     * @param array $access_token_data
+     * 
+     * @return array|ApiError|GenericError The response array containing order details or an error object if an error occurs.
+     */
+    public function getOrderById(string $order_id)
+    {
+        try {
+            $access_token_data = $this->getAccessTokenData();
+            $response = $this->http_client->request(
+                'GET',
+                Config::MERCHANT_API_URL . '/merchants/orders/' . $order_id,
+                [
+                    RequestOptions::HEADERS => [
+                        'Authorization' => 'Bearer ' . $access_token_data['access_token'],
+                        'Content-Type'  => 'application/json',
+                    ],
+                ]
+            );
+
+            $order = json_decode($response->getBody()->getContents(), true);
+
+            return $order;
+        } catch (InvalidArgumentException $e) {
+            return new GenericError($e->getMessage(), $e->getCode());
+        } catch (RequestException $e) {
+            return new ApiError($e->getMessage(), $e->getCode());
+        } catch (Exception $e) {
+            return new GenericError($e->getMessage(), $e->getCode());
+        }
     }
 }
