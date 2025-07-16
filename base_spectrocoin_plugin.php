@@ -9,7 +9,7 @@ require_once __DIR__ . '/vendor/autoload.php';
  */
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
-define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '1.0.0');
+define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '2.1.0');
 
 if (!class_exists('vmPSPlugin')) {
     require(implode(DS, [JPATH_VM_PLUGINS, 'vmpsplugin.php']));

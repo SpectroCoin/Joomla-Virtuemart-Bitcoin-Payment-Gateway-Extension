@@ -28,7 +28,6 @@ use GuzzleHttp\Exception\RequestException;
 
 defined('JPATH_BASE') or die();
 defined('_JEXEC') or die('Restricted access');
-define('SPECTROCOIN_VIRTUEMART_EXTENSION_VERSION', '2.0.0');
 
 Log::addLogger(
     [
@@ -53,108 +52,115 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
      */
     public function plgVmOnPaymentNotification(): void
     {
-        $app   = Factory::getApplication();
-        $input = $app->input;
+        $app         = Factory::getApplication();
+        $input       = $app->input;
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        Log::add('plgVmOnPaymentNotification initialized.', Log::DEBUG, 'plg_vmpayment_spectrocoin');
+
         try {
-            Log::add(
-                "SpectroCoin callback: loading plugin params",
-                Log::DEBUG,
-                'plg_vmpayment_spectrocoin'
-            );
-            $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
-            $params = new Registry($plugin->params);
-
-            Log::add(
-                sprintf(
-                    "SpectroCoin params → project_id=%s, client_id=%s",
-                    $params->get('project_id'),
-                    $params->get('client_id')
-                ),
-                Log::DEBUG,
-                'plg_vmpayment_spectrocoin'
-            );
-
-            $method = (object) [
-                'project_id'    => $params->get('project_id'),
-                'client_id'     => $params->get('client_id'),
-                'client_secret' => $params->get('client_secret'),
-            ];
-
-            $sc_merchant_client = self::getSCClientByMethod($method);
-            Log::add(
-                "SpectroCoin client instantiated for project {$method->project_id}",
-                Log::DEBUG,
-                'plg_vmpayment_spectrocoin'
-            );
             if (stripos($contentType, 'application/json') !== false) {
-                $order_callback = $this->initCallbackFromJson();
-                if (! $order_callback) {
+                $cb = $this->initCallbackFromJson();
+                if (! $cb) {
                     throw new InvalidArgumentException('Invalid JSON callback payload');
                 }
-
-                $order_data = $sc_merchant_client->getOrderById($order_callback->getUuid());
-                if (!isset($order_data['orderId'], $order_data['status'])) {
+                $apiClient  = self::getSCClientByMethod($this->getPluginParams());
+                $remoteData = $apiClient->getOrderById($cb->getUuid());
+                if (empty($remoteData['orderId'] || $remoteData['status'])) {
                     throw new InvalidArgumentException('Malformed order data from API');
                 }
-
-                $order_id   = (int) explode('-', $order_data['orderId'], 2)[0];
-                $raw_status = $order_data['status'];
+                $orderId   = (int) explode('-', $remoteData['orderId'], 2)[0];
+                $rawStatus = $remoteData['status'];
             } else {
-                $order_callback = $this->initCallbackFromPost();
-                if (! $order_callback) {
+                $cb = $this->initCallbackFromPost();
+                if (! $cb) {
                     throw new InvalidArgumentException('Invalid form callback payload');
                 }
-
-                $order_id   = $input->getInt('orderId');
-                if (! $order_id) {
+                $orderId   = $input->getInt('orderId');
+                $rawStatus = $cb->getStatus();
+                if (! $orderId) {
                     throw new InvalidArgumentException('Missing orderId in POST');
                 }
-                $raw_status = $order_callback->getStatus();
             }
 
-            $status_enum = OrderStatus::normalize($raw_status);
+            $orderModel = new VirtueMartModelOrders();
+            $order      = $orderModel->getOrder($orderId);
+            if (empty($order['details'])) {
+                throw new InvalidArgumentException("Order #{$orderId} not found or has no details");
+            }
 
-            switch ($status_enum) {
+            $method = $this->getVmPluginMethod(
+                $order['details']['BT']->virtuemart_paymentmethod_id
+            );
+            if (! $method) {
+                throw new InvalidArgumentException("Payment method not configured for order #{$orderId}");
+            }
+            if (! $this->selectedThisElement($method->payment_element)) {
+                throw new InvalidArgumentException("SpectroCoin plugin not active for this order");
+            }
+
+            // --- 3) Map raw status to your VirtueMart order status ---
+            $statusEnum = OrderStatus::normalize($rawStatus);
+            switch ($statusEnum) {
                 case OrderStatus::NEW:
-                    $order_status = $method->new_status;
+                    $newVmStatus = $method->new_status;
                     break;
                 case OrderStatus::PENDING:
-                    $order_status = $method->pending_status;
+                    $newVmStatus = $method->pending_status;
                     break;
                 case OrderStatus::PAID:
-                    $order_status = $method->paid_status;
+                    $newVmStatus = $method->paid_status;
                     break;
                 case OrderStatus::FAILED:
-                    $order_status = $method->failed_status;
+                    $newVmStatus = $method->failed_status;
                     break;
                 case OrderStatus::EXPIRED:
-                    $order_status = $method->expired_status;
+                    $newVmStatus = $method->expired_status;
                     break;
                 default:
-                    throw new InvalidArgumentException('Unknown order status: ' . $order_callback->getStatus());
-                    break;
+                    throw new InvalidArgumentException('Unknown order status: ' . $rawStatus);
             }
-            $order['order_status'] = $order_status;
-            VmModel::getModel('orders')->updateStatusForOneOrder($order_id, $order, true);
-            http_response_code(200); // OK
+
+            // --- 4) Do the update ---
+            $order['order_status'] = $newVmStatus;
+            VmModel::getModel('orders')
+                ->updateStatusForOneOrder($orderId, $order, true);
+
+            http_response_code(200);
             echo '*ok*';
-        } catch (InvalidArgumentException $e) {
+        }
+        catch (InvalidArgumentException $e) {
             Log::add("Error processing callback: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
-            http_response_code(400); // Bad Request
-            echo "Error processing callback: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-        } catch (RequestException $e) {
+            http_response_code(400);
+            echo "Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+        }
+        catch (RequestException $e) {
             Log::add("Callback API error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
-            http_response_code(500); // Internal Server Error
-            echo "Callback API error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-        } catch (Exception $e) {
-            Log::add("General error processing callback: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
-            http_response_code(500); // Internal Server Error
-            echo "General error processing callback: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            http_response_code(500);
+            echo "API Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+        }
+        catch (\Throwable $e) {
+            Log::add("Unexpected error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
+            http_response_code(500);
+            echo "Internal Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         }
 
-        Factory::getApplication()->close();
-    }
+        $app->close();
+        }   
+
+        /**
+         * Helper to pull your plugin params into a simple object.
+         */
+        protected function getPluginParams(): object
+        {
+            $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
+            $r      = new Registry($plugin->params);
+            return (object)[
+                'project_id'    => $r->get('project_id'),
+                'client_id'     => $r->get('client_id'),
+                'client_secret' => $r->get('client_secret'),
+            ];
+        }
+
 
     /**
      * Initializes the callback data from POST (form-encoded) request.
