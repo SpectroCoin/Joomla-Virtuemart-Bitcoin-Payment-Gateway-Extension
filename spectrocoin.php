@@ -127,39 +127,36 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
             http_response_code(200);
             echo '*ok*';
-        }
-        catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             Log::add("Error processing callback: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
             http_response_code(400);
             echo "Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-        }
-        catch (RequestException $e) {
+        } catch (RequestException $e) {
             Log::add("Callback API error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
             http_response_code(500);
             echo "API Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-        }
-        catch (\Throwable $e) {
+        } catch (\Throwable $e) {
             Log::add("Unexpected error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
             http_response_code(500);
             echo "Internal Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         }
 
         $app->close();
-        }   
+    }
 
-        /**
-         * Helper to pull your plugin params into a simple object.
-         */
-        protected function getPluginParams(): object
-        {
-            $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
-            $r      = new Registry($plugin->params);
-            return (object)[
-                'project_id'    => $r->get('project_id'),
-                'client_id'     => $r->get('client_id'),
-                'client_secret' => $r->get('client_secret'),
-            ];
-        }
+    /**
+     * Helper to pull your plugin params into a simple object.
+     */
+    protected function getPluginParams(): object
+    {
+        $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
+        $r      = new Registry($plugin->params);
+        return (object)[
+            'project_id'    => $r->get('project_id'),
+            'client_id'     => $r->get('client_id'),
+            'client_secret' => $r->get('client_secret'),
+        ];
+    }
 
 
     /**

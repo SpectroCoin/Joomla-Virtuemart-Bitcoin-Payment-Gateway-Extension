@@ -31,7 +31,6 @@ class SCMerchantClient
     private string $project_id;
     private string $client_id;
     private string $client_secret;
-    private string $encryption_key;
     protected Client $http_client;
 
     /**
@@ -47,7 +46,6 @@ class SCMerchantClient
         $this->client_id = $client_id;
         $this->client_secret = $client_secret;
 
-        $this->encryption_key = $this->InitializeEncryptionKey();
         $this->http_client = new Client();
     }
 
@@ -134,7 +132,7 @@ class SCMerchantClient
         $current_time = time();
         $encrypted_access_token_data = $this->retrieveEncryptedData();
         if ($encrypted_access_token_data) {
-            $access_token_data = json_decode(Utils::DecryptAuthData($encrypted_access_token_data, $this->encryption_key), true);
+            $access_token_data = json_decode(Utils::DecryptAuthData($encrypted_access_token_data, 'spectrocoin-joomla'), true);
             if ($this->isTokenValid($access_token_data, $current_time)) {
                 return $access_token_data;
             }
@@ -166,7 +164,7 @@ class SCMerchantClient
             }
 
             $access_token_data['expires_at'] = $current_time + $access_token_data['expires_in'];
-            $encrypted_access_token_data = Utils::EncryptAuthData(json_encode($access_token_data), $this->encryption_key);
+            $encrypted_access_token_data = Utils::EncryptAuthData(json_encode($access_token_data), 'spectrocoin-joomla');
             $this->storeEncryptedData($encrypted_access_token_data);
             return $access_token_data;
         } catch (RequestException $e) {
@@ -184,49 +182,6 @@ class SCMerchantClient
     private function isTokenValid(array $access_token_data, int $current_time): bool
     {
         return isset($access_token_data['expires_at']) && $current_time < $access_token_data['expires_at'];
-    }
-
-    /**
-     * Initialize encryption key
-     * 
-     * This method retrieves the encryption key from the Joomla database. If the key does not exist,
-     * it generates a new key, saves it to the database, and then returns it.
-     * 
-     * @return string The encryption key
-     */
-    private function InitializeEncryptionKey(): string
-    {
-        $db = Factory::getDbo();
-        $query = $db->getQuery(true);
-
-        $query->select($db->quoteName('params'))
-            ->from($db->quoteName('#__extensions'))
-            ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin'))
-            ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
-
-        $db->setQuery($query);
-        $paramsJson = $db->loadResult();
-
-        $params = new Registry;
-        $params->loadString($paramsJson);
-
-        $key = $params->get('spectrocoin_encryption_key', '');
-        if (empty($key)) {
-            $key = bin2hex(random_bytes(32));
-
-            $params->set('spectrocoin_encryption_key', $key);
-
-            $query = $db->getQuery(true)
-                ->update($db->quoteName('#__extensions'))
-                ->set($db->quoteName('params') . ' = ' . $db->quote((string) $params))
-                ->where($db->quoteName('element') . ' = ' . $db->quote('spectrocoin'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'));
-
-            $db->setQuery($query);
-            $db->execute();
-        }
-
-        return $key;
     }
 
     /**
