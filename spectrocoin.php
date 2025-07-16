@@ -57,22 +57,42 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         $input = $app->input;
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         try {
+            Log::add(
+                "SpectroCoin callback: loading plugin params",
+                Log::DEBUG,
+                'plg_vmpayment_spectrocoin'
+            );
+            $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
+            $params = new Registry($plugin->params);
+
+            Log::add(
+                sprintf(
+                    "SpectroCoin params → project_id=%s, client_id=%s",
+                    $params->get('project_id'),
+                    $params->get('client_id')
+                ),
+                Log::DEBUG,
+                'plg_vmpayment_spectrocoin'
+            );
+
+            $method = (object) [
+                'project_id'    => $params->get('project_id'),
+                'client_id'     => $params->get('client_id'),
+                'client_secret' => $params->get('client_secret'),
+            ];
+
+            $sc_merchant_client = self::getSCClientByMethod($method);
+            Log::add(
+                "SpectroCoin client instantiated for project {$method->project_id}",
+                Log::DEBUG,
+                'plg_vmpayment_spectrocoin'
+            );
             if (stripos($contentType, 'application/json') !== false) {
                 $order_callback = $this->initCallbackFromJson();
                 if (! $order_callback) {
                     throw new InvalidArgumentException('Invalid JSON callback payload');
                 }
 
-                $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
-                $params = new Registry($plugin->params);
-
-                $method = (object) [
-                    'project_id'    => $params->get('project_id'),
-                    'client_id'     => $params->get('client_id'),
-                    'client_secret' => $params->get('client_secret'),
-                ];
-
-                $sc_merchant_client = self::getSCClientByMethod($method);
                 $order_data = $sc_merchant_client->getOrderById($order_callback->getUuid());
                 if (!isset($order_data['orderId'], $order_data['status'])) {
                     throw new InvalidArgumentException('Malformed order data from API');
