@@ -51,9 +51,9 @@ class Utils
      *
      * @param string $encryptedDataWithIv The encrypted data to decrypt.
      * @param string $encryptionKey The encryption key to use.
-     * @return string The decrypted data.
+     * @return bool|string The decrypted data.
      */
-    public static function decryptAuthData(string $encryptedDataWithIv, string $encryptionKey): string
+    public static function decryptAuthData(string $encryptedDataWithIv, string $encryptionKey): bool|string
     {
         list($encryptedData, $iv) = explode('::', base64_decode($encryptedDataWithIv), 2);
         return openssl_decrypt($encryptedData, 'aes-256-cbc', $encryptionKey, 0, $iv);
