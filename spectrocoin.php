@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use SpectroCoin\SCMerchantClient\Http\OldOrderCallback;
 use SpectroCoin\SCMerchantClient\Http\OrderCallback;
 use SpectroCoin\SCMerchantClient\Exception\ApiError;
 use SpectroCoin\SCMerchantClient\Exception\GenericError;
@@ -84,7 +85,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
             }
 
             switch ($order_callback->getStatus()) {
-                case OrderStatus::New ->value:
+                case OrderStatus::New->value:
                     $order_status = $method->new_status;
                     break;
                 case OrderStatus::Pending->value:
@@ -125,11 +126,22 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
     }
 
     /**
-     * Initializes the callback data from POST request.
+     * Initializes the callback data from POST (form-encoded) request.
      * 
-     * @return OrderCallback|null Returns an OrderCallback object if data is valid, null otherwise.
+     * Callback format processed by this method is URL-encoded form data.
+     * Example: merchantId=1387551&apiId=105548&userId=…&sign=…
+     * Content-Type: application/x-www-form-urlencoded
+     * These callbacks are being sent by old merchant projects.
+     *
+     * Extracts the expected fields from `$_POST`, validates the signature,
+     * and returns an `OldOrderCallback` instance wrapping that data.
+     *
+     * @deprecated since v2.1.0
+     *
+     * @return OldOrderCallback|null  An `OldOrderCallback` if the POST body
+     *                                contained valid data; `null` otherwise.
      */
-    private function initCallbackFromPost(): ?OrderCallback
+    private function initCallbackFromPost(): ?OldOrderCallback
     {
         $expected_keys = ['userId', 'merchantApiId', 'merchantId', 'apiId', 'orderId', 'payCurrency', 'payAmount', 'receiveCurrency', 'receiveAmount', 'receivedAmount', 'description', 'orderRequestId', 'status', 'sign'];
 
@@ -141,10 +153,46 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         }
 
         if (empty($callback_data)) {
-            $this->wc_logger->log('error', "No data received in callback");
+            Log::add("No data received in callback", Log::ERROR, 'plg_vmpayment_spectrocoin');
             return null;
         }
-        return new OrderCallback($callback_data);
+        return new OldOrderCallback($callback_data);
+    }
+
+    /**
+     * Initializes the callback data from JSON request body.
+     *
+     * Reads the raw HTTP request body, decodes it as JSON, and returns
+     * an OrderCallback instance if the payload is valid.
+     *
+     * @return OrderCallback|null  An OrderCallback if the JSON payload
+     *                             contained valid data; null if the body
+     *                             was empty.
+     *
+     * @throws \JsonException           If the request body is not valid JSON.
+     * @throws \InvalidArgumentException If required fields are missing
+     *                                   or validation fails in OrderCallback.
+     *
+     */
+    private function initCallbackFromJson(): ?OrderCallback
+    {
+        $body = (string) \file_get_contents('php://input');
+        if ($body === '') {
+            Log::add("Empty JSON callback payload", Log::ERROR, 'plg_vmpayment_spectrocoin');
+            return null;
+        }
+
+        $data = \json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+        if (!\is_array($data)) {
+            Log::add('JSON callback payload is not an object', Log::ERROR, 'plg_vmpayment_spectrocoin');
+            return null;
+        }
+
+        return new OrderCallback(
+            $data['id'] ?? null,
+            $data['merchantApiId'] ?? null
+        );
     }
 
     /**

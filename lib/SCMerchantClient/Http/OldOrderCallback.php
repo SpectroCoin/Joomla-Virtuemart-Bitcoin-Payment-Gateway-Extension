@@ -11,7 +11,7 @@ use InvalidArgumentException;
 
 defined('_JEXEC') or die('Restricted access');
 
-class OrderCallback
+class OldOrderCallback
 {
     private ?string $userId;
     private ?string $merchantApiId;
@@ -29,7 +29,7 @@ class OrderCallback
     private ?string $sign;
 
     /**
-     * Constructor for OrderCallback.
+     * Constructor for OldOrderCallback.
      *
      * @param array $data The data for initializing the callback.
      *
