@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use SpectroCoin\SCMerchantClient\Http\OldOrderCallback;
 use SpectroCoin\SCMerchantClient\Http\OrderCallback;
 use SpectroCoin\SCMerchantClient\Exception\ApiError;
 use SpectroCoin\SCMerchantClient\Exception\GenericError;
@@ -14,6 +15,8 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Registry\Registry;
 
 use Exception;
 use InvalidArgumentException;
@@ -50,53 +53,62 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
      */
     public function plgVmOnPaymentNotification(): void
     {
-        Log::add('plgVmOnPaymentNotification initialized.', Log::INFO, 'plg_vmpayment_spectrocoin');
-
+        $app   = Factory::getApplication();
+        $input = $app->input;
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         try {
-            $app = Factory::getApplication();
-            $input = $app->input;
-            $orderId = $input->getInt('orderId');
+            if (stripos($contentType, 'application/json') !== false) {
+                $order_callback = $this->initCallbackFromJson();
+                if (! $order_callback) {
+                    throw new InvalidArgumentException('Invalid JSON callback payload');
+                }
 
-            if (!$orderId) {
-                throw new InvalidArgumentException("Invalid order ID in callback.");
+                $plugin = PluginHelper::getPlugin('vmpayment', 'spectrocoin');
+                $params = new Registry($plugin->params);
+
+                $method = (object) [
+                    'project_id'    => $params->get('project_id'),
+                    'client_id'     => $params->get('client_id'),
+                    'client_secret' => $params->get('client_secret'),
+                ];
+
+                $sc_merchant_client = self::getSCClientByMethod($method);
+                $order_data = $sc_merchant_client->getOrderById($order_callback->getUuid());
+                if (!isset($order_data['orderId'], $order_data['status'])) {
+                    throw new InvalidArgumentException('Malformed order data from API');
+                }
+
+                $order_id   = (int) explode('-', $order_data['orderId'], 2)[0];
+                $raw_status = $order_data['status'];
+            } else {
+                $order_callback = $this->initCallbackFromPost();
+                if (! $order_callback) {
+                    throw new InvalidArgumentException('Invalid form callback payload');
+                }
+
+                $order_id   = $input->getInt('orderId');
+                if (! $order_id) {
+                    throw new InvalidArgumentException('Missing orderId in POST');
+                }
+                $raw_status = $order_callback->getStatus();
             }
 
-            $orderModel = new VirtueMartModelOrders();
-            $order = $orderModel->getOrder($orderId);
+            $status_enum = OrderStatus::normalize($raw_status);
 
-            if (empty($order['details'])) {
-                throw new InvalidArgumentException("Order details are empty for order ID $orderId.");
-            }
-
-            $method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id);
-            if (!$method) {
-                throw new InvalidArgumentException("No payment method found for Order ID: $orderId.");
-            }
-
-            if (!$this->selectedThisElement($method->payment_element)) {
-                throw new InvalidArgumentException("This payment element is not selected: {$method->payment_element}");
-            }
-
-            $order_callback = $this->initCallbackFromPost();
-
-            if (!$order_callback) {
-                throw new InvalidArgumentException("Invalid callback received.");
-            }
-
-            switch ($order_callback->getStatus()) {
-                case OrderStatus::New ->value:
+            switch ($status_enum) {
+                case OrderStatus::NEW:
                     $order_status = $method->new_status;
                     break;
-                case OrderStatus::Pending->value:
+                case OrderStatus::PENDING:
                     $order_status = $method->pending_status;
                     break;
-                case OrderStatus::Paid->value:
+                case OrderStatus::PAID:
                     $order_status = $method->paid_status;
                     break;
-                case OrderStatus::Failed->value:
+                case OrderStatus::FAILED:
                     $order_status = $method->failed_status;
                     break;
-                case OrderStatus::Expired->value:
+                case OrderStatus::EXPIRED:
                     $order_status = $method->expired_status;
                     break;
                 default:
@@ -104,7 +116,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                     break;
             }
             $order['order_status'] = $order_status;
-            VmModel::getModel('orders')->updateStatusForOneOrder($orderId, $order, true);
+            VmModel::getModel('orders')->updateStatusForOneOrder($order_id, $order, true);
             http_response_code(200); // OK
             echo '*ok*';
         } catch (InvalidArgumentException $e) {
@@ -125,11 +137,22 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
     }
 
     /**
-     * Initializes the callback data from POST request.
+     * Initializes the callback data from POST (form-encoded) request.
      * 
-     * @return OrderCallback|null Returns an OrderCallback object if data is valid, null otherwise.
+     * Callback format processed by this method is URL-encoded form data.
+     * Example: merchantId=1387551&apiId=105548&userId=…&sign=…
+     * Content-Type: application/x-www-form-urlencoded
+     * These callbacks are being sent by old merchant projects.
+     *
+     * Extracts the expected fields from `$_POST`, validates the signature,
+     * and returns an `OldOrderCallback` instance wrapping that data.
+     *
+     * @deprecated since v2.1.0
+     *
+     * @return OldOrderCallback|null  An `OldOrderCallback` if the POST body
+     *                                contained valid data; `null` otherwise.
      */
-    private function initCallbackFromPost(): ?OrderCallback
+    private function initCallbackFromPost(): ?OldOrderCallback
     {
         $expected_keys = ['userId', 'merchantApiId', 'merchantId', 'apiId', 'orderId', 'payCurrency', 'payAmount', 'receiveCurrency', 'receiveAmount', 'receivedAmount', 'description', 'orderRequestId', 'status', 'sign'];
 
@@ -141,10 +164,46 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         }
 
         if (empty($callback_data)) {
-            $this->wc_logger->log('error', "No data received in callback");
+            Log::add("No data received in callback", Log::ERROR, 'plg_vmpayment_spectrocoin');
             return null;
         }
-        return new OrderCallback($callback_data);
+        return new OldOrderCallback($callback_data);
+    }
+
+    /**
+     * Initializes the callback data from JSON request body.
+     *
+     * Reads the raw HTTP request body, decodes it as JSON, and returns
+     * an OrderCallback instance if the payload is valid.
+     *
+     * @return OrderCallback|null  An OrderCallback if the JSON payload
+     *                             contained valid data; null if the body
+     *                             was empty.
+     *
+     * @throws \JsonException           If the request body is not valid JSON.
+     * @throws \InvalidArgumentException If required fields are missing
+     *                                   or validation fails in OrderCallback.
+     *
+     */
+    private function initCallbackFromJson(): ?OrderCallback
+    {
+        $body = (string) \file_get_contents('php://input');
+        if ($body === '') {
+            Log::add("Empty JSON callback payload", Log::ERROR, 'plg_vmpayment_spectrocoin');
+            return null;
+        }
+
+        $data = \json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+        if (!\is_array($data)) {
+            Log::add('JSON callback payload is not an object', Log::ERROR, 'plg_vmpayment_spectrocoin');
+            return null;
+        }
+
+        return new OrderCallback(
+            $data['id'] ?? null,
+            $data['merchantApiId'] ?? null
+        );
     }
 
     /**
