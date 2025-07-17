@@ -68,29 +68,39 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
                 $db    = Factory::getDbo();
                 $query = $db->getQuery(true)
-                    ->select('*')
+                    ->select('payment_params')
                     ->from($db->quoteName('#__virtuemart_paymentmethods'))
                     ->where($db->quoteName('payment_element') . ' = ' . $db->quote('spectrocoin'))
                     ->where($db->quoteName('published') . ' = 1');
                 $db->setQuery($query);
                 $rows = $db->loadObjectList();
 
-
                 $method = null;
                 foreach ($rows as $row) {
-                    $r = new Registry;
-                    $r->loadString($row->payment_params);
-                    if ((string) $r->get('client_id') === (string) $merchantApiId) {
+                    $params = $row->payment_params;
+
+                    preg_match('/project_id="([^"]+)"/',       $params, $m1);
+                    preg_match('/client_id="([^"]+)"/',        $params, $m2);
+                    preg_match('/client_secret="([^"]+)"/',    $params, $m3);
+
+                    $projectId    = $m1[1] ?? null;
+                    $clientId     = $m2[1] ?? null;
+                    $clientSecret = $m3[1] ?? null;
+
+                    if ($clientId === $merchantApiId) {
                         $method = (object)[
-                            'project_id'    => $r->get('project_id'),
-                            'client_id'     => $r->get('client_id'),
-                            'client_secret' => $r->get('client_secret'),
+                            'project_id'    => $projectId,
+                            'client_id'     => $clientId,
+                            'client_secret' => $clientSecret,
                         ];
                         break;
                     }
                 }
+
                 if (! $method) {
-                    throw new InvalidArgumentException("No SpectroCoin VM method for merchantApiId {$merchantApiId}");
+                    throw new InvalidArgumentException(
+                        "No SpectroCoin method found for merchantApiId {$merchantApiId}"
+                    );
                 }
 
                 $apiClient  = self::getSCClientByMethod($method);
