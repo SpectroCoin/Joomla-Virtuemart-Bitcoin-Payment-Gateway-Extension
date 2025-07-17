@@ -16,7 +16,7 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\CMS\Registry\Registry;
+use Joomla\Registry\Registry;
 
 use Exception;
 use InvalidArgumentException;
