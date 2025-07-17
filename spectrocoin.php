@@ -63,11 +63,29 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                 if (! $cb) {
                     throw new InvalidArgumentException('Invalid JSON callback payload');
                 }
-                $apiClient  = self::getSCClientByMethod($this->getPluginParams());
+
+                $merchantApiId = $cb->getMerchantApiId();
+
+
+                $methods = $this->getVmPluginMethods('vmpayment', 'spectrocoin');
+                $method = null;
+                foreach ($methods as $m) {
+                    if ((string) $m->client_id === (string) $merchantApiId) {
+                        $method = $m;
+                        break;
+                    }
+                }
+                if (! $method) {
+                    throw new InvalidArgumentException("No SpectroCoin method matching merchantApiId {$merchantApiId}");
+                }
+
+                $apiClient  = self::getSCClientByMethod($method);
+
                 $remoteData = $apiClient->getOrderById($cb->getUuid());
-                if (empty($remoteData['orderId'] || $remoteData['status'])) {
+                if (empty($remoteData['orderId']) || empty($remoteData['status'])) {
                     throw new InvalidArgumentException('Malformed order data from API');
                 }
+
                 $orderId   = (int) explode('-', $remoteData['orderId'], 2)[0];
                 $rawStatus = $remoteData['status'];
             } else {
