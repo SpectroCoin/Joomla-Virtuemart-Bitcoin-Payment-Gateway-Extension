@@ -131,16 +131,27 @@ class SCMerchantClient
      */
     public function getAccessTokenData()
     {
-        $current_time = time();
-        $encrypted_access_token_data = $this->retrieveEncryptedData();
-        if ($encrypted_access_token_data) {
-            $access_token_data = json_decode(Utils::DecryptAuthData($encrypted_access_token_data, $this->encryption_key), true);
-            if ($this->isTokenValid($access_token_data, $current_time)) {
-                return $access_token_data;
+        $now    = time();
+        $cipher = $this->retrieveEncryptedData();
+
+        if ($cipher) {
+            try {
+                $json = Utils::decryptAuthData($cipher, $this->encryption_key);
+                $data = json_decode($json, true);
+                if ($this->isTokenValid($data, $now)) {
+                    return $data;
+                }
+            } catch (\RuntimeException $e) {
+                error_log(sprintf(
+                    '[SpectroCoin] decryptAuthData failed, refreshing token: %s',
+                    $e->getMessage()
+                ));
             }
         }
-        return $this->refreshAccessToken($current_time);
+
+        return $this->refreshAccessToken($now);
     }
+
 
     /**
      * Refreshes the access token
