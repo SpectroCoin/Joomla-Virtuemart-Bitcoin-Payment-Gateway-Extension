@@ -66,21 +66,34 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
                 $merchantApiId = $cb->getMerchantApiId();
 
+                $db    = Factory::getDbo();
+                $query = $db->getQuery(true)
+                    ->select('*')
+                    ->from($db->quoteName('#__virtuemart_paymentmethods'))
+                    ->where($db->quoteName('payment_element') . ' = ' . $db->quote('spectrocoin'))
+                    ->where($db->quoteName('published') . ' = 1');
+                $db->setQuery($query);
+                $rows = $db->loadObjectList();
 
-                $methods = $this->getVmPluginMethods('vmpayment', 'spectrocoin');
+
                 $method = null;
-                foreach ($methods as $m) {
-                    if ((string) $m->client_id === (string) $merchantApiId) {
-                        $method = $m;
+                foreach ($rows as $row) {
+                    $r = new Registry;
+                    $r->loadString($row->payment_params);
+                    if ((string) $r->get('client_id') === (string) $merchantApiId) {
+                        $method = (object)[
+                            'project_id'    => $r->get('project_id'),
+                            'client_id'     => $r->get('client_id'),
+                            'client_secret' => $r->get('client_secret'),
+                        ];
                         break;
                     }
                 }
                 if (! $method) {
-                    throw new InvalidArgumentException("No SpectroCoin method matching merchantApiId {$merchantApiId}");
+                    throw new InvalidArgumentException("No SpectroCoin VM method for merchantApiId {$merchantApiId}");
                 }
 
                 $apiClient  = self::getSCClientByMethod($method);
-
                 $remoteData = $apiClient->getOrderById($cb->getUuid());
                 if (empty($remoteData['orderId']) || empty($remoteData['status'])) {
                     throw new InvalidArgumentException('Malformed order data from API');
