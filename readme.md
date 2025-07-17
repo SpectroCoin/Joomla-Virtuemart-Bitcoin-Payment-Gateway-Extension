@@ -65,7 +65,11 @@ Order callbacks in the SpectroCoin plugin allow your WordPress site to automatic
 
 ## Changelog
 
-### 2.0.0 MAJOR (02/18/2025):
+### 2.1.0 (17/07/2025):
+
+_Added_ support for new JSON and old URL-encoded form data callbacks format. New callbacks will be automatically enabled with new SpectroCoin merchant projects created. With old projects, old callback format will be used. In the future versions old callback format will be removed.
+
+### 2.0.0 (02/18/2025):
 
 This major update introduces several improvements, including enhanced security, updated coding standards, and a streamlined integration process. **Important:** Users must generate new API credentials (Client ID and Client Secret) in their SpectroCoin account settings to continue using the plugin. The previous private key and merchant ID functionality have been deprecated.
 
@@ -95,7 +99,7 @@ _Added_ _GenericError.php_ file has been added to handle generic errors.
 
 _Added_ Strict types have been added to all classes.
 
-### 1.0.0 MAJOR (09/28/2023):
+### 1.0.0 (09/28/2023):
 
 _Removed_ "API URL" field in extension configuration, since is always the same.
 

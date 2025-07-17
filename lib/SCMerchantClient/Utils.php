@@ -56,7 +56,11 @@ class Utils
     public static function decryptAuthData(string $encryptedDataWithIv, string $encryptionKey): string
     {
         list($encryptedData, $iv) = explode('::', base64_decode($encryptedDataWithIv), 2);
-        return openssl_decrypt($encryptedData, 'aes-256-cbc', $encryptionKey, 0, $iv);
+        $decrypted = openssl_decrypt($encryptedData, 'aes-256-cbc', $encryptionKey, 0, $iv);
+        if ($decrypted === false){
+            throw new \RuntimeException('Decryption failed: Invalid encryption key or corrupted data.');
+        }
+        return $decrypted;
     }
 
     /**
