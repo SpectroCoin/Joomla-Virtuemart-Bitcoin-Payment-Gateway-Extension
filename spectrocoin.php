@@ -87,7 +87,7 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                     $clientId     = $m2[1] ?? null;
                     $clientSecret = $m3[1] ?? null;
 
-                    if ($clientId === $merchantApiId) {
+                    if ($projectId === $merchantApiId) {
                         $method = (object)[
                             'project_id'    => $projectId,
                             'client_id'     => $clientId,
