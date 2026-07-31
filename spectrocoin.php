@@ -57,6 +57,17 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         Log::add('plgVmOnPaymentNotification initialized.', Log::DEBUG, 'plg_vmpayment_spectrocoin');
 
+        // The callback is a server-to-server webhook and must not be reachable
+        // with anything other than POST.
+        if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            Log::add('Invalid callback request method', Log::ERROR, 'plg_vmpayment_spectrocoin');
+            http_response_code(405);
+            echo 'Invalid request method';
+            $app->close();
+
+            return;
+        }
+
         try {
             if (stripos($contentType, 'application/json') !== false) {
                 $cb = $this->initCallbackFromJson();
@@ -111,13 +122,20 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
                 $orderId   = (int) explode('-', $remoteData['orderId'], 2)[0];
                 $rawStatus = $remoteData['status'];
+                // MerchantOrderDTO reports the settlement side as
+                // receiveAmount / receiveCurrencyCode.
+                $receiveAmount   = $remoteData['receiveAmount'] ?? null;
+                $receiveCurrency = $remoteData['receiveCurrencyCode'] ?? null;
             } else {
                 $cb = $this->initCallbackFromPost();
                 if (! $cb) {
                     throw new InvalidArgumentException('Invalid form callback payload');
                 }
-                $orderId   = $input->getInt('orderId');
+                // Take the order id from the signed payload, not from the request.
+                $orderId   = (int) explode('-', (string) $cb->getOrderId(), 2)[0];
                 $rawStatus = $cb->getStatus();
+                $receiveAmount   = $cb->getReceiveAmount();
+                $receiveCurrency = $cb->getReceiveCurrency();
                 if (! $orderId) {
                     throw new InvalidArgumentException('Missing orderId in POST');
                 }
@@ -137,6 +155,35 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
             }
             if (! $this->selectedThisElement($method->payment_element)) {
                 throw new InvalidArgumentException("SpectroCoin plugin not active for this order");
+            }
+
+            // The order was created with receiveAmount / receiveCurrencyCode taken
+            // from the order total, so they must still match. A missing field means
+            // an unexpected payload shape rather than a mismatch, so it is logged
+            // and the comparison is skipped.
+            if ($receiveCurrency === null || $receiveAmount === null) {
+                Log::add("No settlement amount to compare for order #{$orderId}", Log::WARNING, 'plg_vmpayment_spectrocoin');
+            } else {
+                $orderTotal    = (float) $order['details']['BT']->order_total;
+                $orderCurrency = ShopFunctions::getCurrencyByID(
+                    $order['details']['BT']->order_currency,
+                    'currency_code_3'
+                );
+
+                if (strtoupper((string) $receiveCurrency) !== strtoupper((string) $orderCurrency)) {
+                    throw new InvalidArgumentException("Currency does not match order #{$orderId}");
+                }
+                // Reported for now rather than rejected: it is not yet confirmed
+                // whether the settled amount is gross or net of fees, and
+                // rejecting a legitimate settlement would leave the order unpaid.
+                // Promote to a rejection once confirmed.
+                if ((float) $receiveAmount + 0.00000001 < $orderTotal) {
+                    Log::add(
+                        "Amount {$receiveAmount} does not cover order #{$orderId} total {$orderTotal}",
+                        Log::WARNING,
+                        'plg_vmpayment_spectrocoin'
+                    );
+                }
             }
 
             // --- 3) Map raw status to your VirtueMart order status ---
@@ -169,17 +216,19 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
             http_response_code(200);
             echo '*ok*';
         } catch (InvalidArgumentException $e) {
+            // Details go to the log only - the response body is returned to an
+            // unauthenticated caller.
             Log::add("Error processing callback: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
             http_response_code(400);
-            echo "Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            echo 'Error processing callback';
         } catch (RequestException $e) {
             Log::add("Callback API error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
             http_response_code(500);
-            echo "API Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            echo 'Callback API error';
         } catch (\Throwable $e) {
             Log::add("Unexpected error: {$e->getMessage()}", Log::ERROR, 'plg_vmpayment_spectrocoin');
             http_response_code(500);
-            echo "Internal Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            echo 'Error processing callback';
         }
 
         $app->close();
