@@ -18,7 +18,7 @@
  * Standalone by design: this plugin ships no PHPUnit setup, and a Joomla VirtueMart
  * bootstrap is not needed to check a status table.
  *
- * Run:  php tests/OrderStatusCoverageTest.php
+ * Run:  php tests/check-order-status-coverage.php
  */
 
 define('_JEXEC', true);
