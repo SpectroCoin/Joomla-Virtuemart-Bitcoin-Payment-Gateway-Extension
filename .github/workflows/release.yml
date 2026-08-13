@@ -85,6 +85,7 @@ jobs:
                     --exclude='README.md' \
                     --exclude='changelog.md' \
                     --exclude='.gitignore' \
+                    --exclude='tests' \
                     ./ spectrocoin/upload/
 
           # Create the zip file with the proper structure
