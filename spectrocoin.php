@@ -188,7 +188,19 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
             // --- 3) Map raw status to your VirtueMart order status ---
             $statusEnum = OrderStatus::normalize($rawStatus);
-            switch ($statusEnum) {
+
+            // Informational statuses report on a payment in progress and carry no
+            // VirtueMart transition; the order is left exactly as it is.
+            $newVmStatus = null;
+            if ($statusEnum->isInformational()) {
+                JLog::add(
+                    'SpectroCoin: order ' . $orderId . ' reported ' . $statusEnum->value
+                        . '; no status change applied.',
+                    JLog::WARNING,
+                    'spectrocoin'
+                );
+            }
+            else switch ($statusEnum) {
                 case OrderStatus::NEW:
                     $newVmStatus = $method->new_status;
                     break;
@@ -198,6 +210,9 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
                 case OrderStatus::PAID:
                     $newVmStatus = $method->paid_status;
                     break;
+                case OrderStatus::CANCELLED:
+                case OrderStatus::REJECTED:
+                case OrderStatus::INVALID_PAYMENT:
                 case OrderStatus::FAILED:
                     $newVmStatus = $method->failed_status;
                     break;
@@ -209,9 +224,11 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
             }
 
             // --- 4) Do the update ---
-            $order['order_status'] = $newVmStatus;
-            VmModel::getModel('orders')
-                ->updateStatusForOneOrder($orderId, $order, true);
+            if ($newVmStatus !== null) {
+                $order['order_status'] = $newVmStatus;
+                VmModel::getModel('orders')
+                    ->updateStatusForOneOrder($orderId, $order, true);
+            }
 
             http_response_code(200);
             echo '*ok*';
