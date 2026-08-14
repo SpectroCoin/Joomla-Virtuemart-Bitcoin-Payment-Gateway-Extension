@@ -1,0 +1,44 @@
+# Tier 1 smoke test: a real Joomla, into which the packaged plugin is installed
+# exactly as a merchant would install it.
+#
+# Scope note: VirtueMart itself is not installed here. This proves the package
+# is a valid Joomla extension that installs, enables and loads. Exercising it at
+# checkout needs VirtueMart and belongs to Tier 2.
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: joomla
+      MARIADB_USER: joomla
+      MARIADB_PASSWORD: joomla
+    healthcheck:
+      # Asserts the DATABASE exists, not merely that the server answers.
+      test: ["CMD-SHELL", "mariadb -uroot -proot -e 'USE joomla' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  joomla:
+    image: joomla:5-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      JOOMLA_DB_HOST: db
+      JOOMLA_DB_USER: joomla
+      JOOMLA_DB_PASSWORD: joomla
+      JOOMLA_DB_NAME: joomla
+      JOOMLA_SITE_NAME: smoke
+      JOOMLA_ADMIN_USER: Smoke Admin
+      JOOMLA_ADMIN_USERNAME: admin
+      JOOMLA_ADMIN_PASSWORD: smokesmoke123
+      JOOMLA_ADMIN_EMAIL: smoke@example.com
+    ports:
+      - "8084:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
