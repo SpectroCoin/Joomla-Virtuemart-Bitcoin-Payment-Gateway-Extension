@@ -1,0 +1,68 @@
+# Tier 2: a real Joomla with VirtueMart installed, and a stand-in SpectroCoin
+# API that answers as spectrocoin.com inside this network.
+#
+# Tier 1 deliberately stops short of VirtueMart - it proves the package installs
+# and loads. Everything the callback does (VirtueMartModelOrders, VmModel
+# ->updateStatusForOneOrder) needs VirtueMart present, so Tier 2 installs it.
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: joomla
+      MARIADB_USER: joomla
+      MARIADB_PASSWORD: joomla
+    healthcheck:
+      # Asserts the DATABASE exists, not merely that the server answers.
+      test: ["CMD-SHELL", "mariadb -uroot -proot -e 'USE joomla' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  spectrocoin:
+    build:
+      context: ./stub
+    networks:
+      default:
+        aliases:
+          - spectrocoin.com
+    volumes:
+      - ./.certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/__test/requests"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  joomla:
+    image: joomla:5-apache
+    depends_on:
+      db:
+        condition: service_healthy
+      spectrocoin:
+        condition: service_healthy
+    networks:
+      default:
+        # The plugin rejects a callbackUrl whose host has no dot.
+        aliases:
+          - shop.test
+    environment:
+      JOOMLA_DB_HOST: db
+      JOOMLA_DB_USER: joomla
+      JOOMLA_DB_PASSWORD: joomla
+      JOOMLA_DB_NAME: joomla
+      JOOMLA_SITE_NAME: tier2
+      JOOMLA_ADMIN_USER: Tier Two
+      JOOMLA_ADMIN_USERNAME: admin
+      JOOMLA_ADMIN_PASSWORD: tier2tier2tier2
+      JOOMLA_ADMIN_EMAIL: tier2@example.com
+    volumes:
+      - ./.certs:/certs:ro
+    ports:
+      - "8091:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s

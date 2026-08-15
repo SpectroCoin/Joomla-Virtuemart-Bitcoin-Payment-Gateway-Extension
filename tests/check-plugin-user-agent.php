@@ -69,9 +69,12 @@ function constant_in($source, $name)
 $t = new TestRunner();
 echo "SpectroCoin VirtueMart — plugin identification header\n\n";
 
-$t->run('the client declares its platform and version', function ($t) use ($source) {
+$t->run('the client declares its platform and version', function ($t) use ($source, $root) {
     $t->assertSame('VirtueMart', constant_in($source, 'PLUGIN_PLATFORM'), 'PLUGIN_PLATFORM');
-    $t->assertSame('2.1.6', constant_in($source, 'PLUGIN_VERSION'), 'PLUGIN_VERSION');
+    // Read from the manifest rather than written out here, so a release does
+    // not have to remember to edit this file - the assertion is that they agree.
+    preg_match('#<version[^>]*>([^<]+)</version>#', file_get_contents($root . 'spectrocoin.xml'), $m);
+    $t->assertSame(trim($m[1] ?? ''), constant_in($source, 'PLUGIN_VERSION'), 'PLUGIN_VERSION');
 });
 
 $t->run('the header is wired into the HTTP client', function ($t) use ($source) {
@@ -100,8 +103,10 @@ $t->run('the header carries no merchant or site identity', function ($t) use ($s
 
 $t->run('the advertised version matches the plugin version', function ($t) use ($root) {
     preg_match('/<version[^>]*>([^<]+)<\/version>/', file_get_contents($root . 'spectrocoin.xml'), $m);
-    $t->assertSame(trim($m[1]), '2.1.6',
-        'spectrocoin.xml and the advertised version must not drift');
+    $t->assertTrue(
+        (bool) preg_match('/^\d+\.\d+\.\d+$/', trim($m[1] ?? '')),
+        'the manifest must declare a plain semver version'
+    );
 });
 
 exit($t->summary());
