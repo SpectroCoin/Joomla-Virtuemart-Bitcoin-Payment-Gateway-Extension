@@ -1,0 +1,85 @@
+name: joomla-vm-tier3
+
+# Tier 3: a real shopper journey in a real browser against a real Joomla +
+# VirtueMart checkout.
+#
+# Tier 2 seeds the SpectroCoin order directly on the stub and delivers
+# callbacks - it proves the contract but never that a shopper can reach the
+# gateway. VirtueMart assembles that order inside plgVmConfirmedOrder from a
+# VirtueMartCart built up over several checkout steps in the shopper's
+# session, so the only way to answer "can a shopper pay with this" is to walk
+# one through the storefront: product -> cart -> shipping -> payment -> confirm.
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: joomla
+      MARIADB_USER: joomla
+      MARIADB_PASSWORD: joomla
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb -uroot -proot -e 'USE joomla' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  spectrocoin:
+    build:
+      context: ./stub
+    networks:
+      default:
+        aliases:
+          - spectrocoin.com
+    volumes:
+      - ./.certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/__test/requests"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  joomla:
+    image: joomla:5-apache
+    depends_on:
+      db:
+        condition: service_healthy
+      spectrocoin:
+        condition: service_healthy
+    networks:
+      default:
+        # The plugin builds its callbackUrl from the shop's own domain, and
+        # tier2 established that this plugin, like the others, is exercised
+        # against a dotted host rather than bare "localhost".
+        aliases:
+          - shop.test
+    environment:
+      JOOMLA_DB_HOST: db
+      JOOMLA_DB_USER: joomla
+      JOOMLA_DB_PASSWORD: joomla
+      JOOMLA_DB_NAME: joomla
+      JOOMLA_SITE_NAME: tier3
+      JOOMLA_ADMIN_USER: Tier Three
+      JOOMLA_ADMIN_USERNAME: admin
+      JOOMLA_ADMIN_PASSWORD: tier3tier3tier3
+      JOOMLA_ADMIN_EMAIL: tier3@example.com
+    volumes:
+      - ./.certs:/certs:ro
+    ports:
+      - "8092:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+  # Carries its own browsers; nothing is downloaded at run time.
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.50.0-noble
+    depends_on:
+      joomla:
+        condition: service_healthy
+    volumes:
+      - ./:/work
+    working_dir: /work
+    entrypoint: ["tail", "-f", "/dev/null"]
