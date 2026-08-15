@@ -116,7 +116,10 @@ class plgVmPaymentSpectrocoin extends plgVmPaymentBaseSpectrocoin
 
                 $apiClient  = self::getSCClientByMethod($method);
                 $remoteData = $apiClient->getOrderById($cb->getUuid());
-                if (empty($remoteData['orderId']) || empty($remoteData['status'])) {
+                // A failed call returns an ApiError object, not an array, and
+                // indexing it is a fatal error rather than the handled failure
+                // the catch blocks below are written for.
+                if (! is_array($remoteData) || empty($remoteData['orderId']) || empty($remoteData['status'])) {
                     throw new InvalidArgumentException('Malformed order data from API');
                 }
 
