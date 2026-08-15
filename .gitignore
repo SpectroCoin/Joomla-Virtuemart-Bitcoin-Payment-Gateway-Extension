@@ -1,1 +1,2 @@
-.vscode/tests/e2e/tier2/.certs
+.vscode/
+/tests/e2e/tier2/.certs
